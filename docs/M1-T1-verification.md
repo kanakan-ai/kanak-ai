@@ -57,9 +57,9 @@ docker-compose ps
 ```
 NAME               STATUS         PORTS
 kanak-api          Up (healthy)   0.0.0.0:8080->8080/tcp
-kanak-postgres     Up (healthy)   0.0.0.0:5432->5432/tcp
-kanak-redis        Up (healthy)   0.0.0.0:6379->6379/tcp
-kanak-minio        Up (healthy)   0.0.0.0:9000->9000/tcp, 0.0.0.0:9001->9001/tcp
+kanak-postgres     Up (healthy)   0.0.0.0:5433->5432/tcp
+kanak-redis        Up (healthy)   0.0.0.0:6380->6379/tcp
+kanak-minio        Up (healthy)   0.0.0.0:9000-9001->9000-9001/tcp
 kanak-web          Up (healthy)   0.0.0.0:3000->3000/tcp
 ```
 
