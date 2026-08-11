@@ -35,7 +35,6 @@ All services run locally via Docker Compose. No cloud account required for M1–
 
 - **Docker** and **Docker Compose** (v2+)
 - **Node.js 20+** (for local development outside containers)
-- **Make** (optional but recommended)
 
 ### 1. Clone and Setup
 
@@ -46,19 +45,13 @@ cd kanak-ai
 
 # Copy environment file
 cp .env.example .env
-
-# Or use Make
-make setup
 ```
 
 ### 2. Start Services
 
 ```bash
 # Start all services
-docker compose up -d
-
-# Or use Make
-make up
+docker-compose up -d
 ```
 
 Services will be available at:
@@ -74,10 +67,12 @@ Services will be available at:
 
 ```bash
 # Check all services are healthy
-make health
+docker-compose ps
 
-# Or manually
+# Test API health
 curl http://localhost:8080/health
+
+# Test web app
 curl http://localhost:3000
 ```
 
@@ -85,17 +80,19 @@ curl http://localhost:3000
 
 ```bash
 # All services
-make logs
+docker-compose logs -f
 
 # Specific service
-make logs-api
-make logs-web
+docker-compose logs -f api
+docker-compose logs -f web
 ```
 
 ### 5. Run Integration Tests
 
 ```bash
-make test
+cd tests/integration
+npm install
+npm test
 ```
 
 ---
@@ -106,7 +103,7 @@ make test
 
 ```bash
 # Access API container shell
-make shell-api
+docker-compose exec api sh
 
 # Inside container (or locally)
 cd services/api
@@ -132,7 +129,7 @@ npm run build
 
 ```bash
 # Access PostgreSQL shell
-make shell-db
+docker-compose exec postgres psql -U kanak -d kanak
 
 # Inside psql
 \dt              # List tables
@@ -144,7 +141,7 @@ SELECT * FROM users;
 
 ```bash
 # Access Redis CLI
-make shell-redis
+docker-compose exec redis redis-cli
 
 # Inside redis-cli
 PING
@@ -191,7 +188,6 @@ MINIO_BUCKET=kanak-documents
 kanak-ai/
 ├── docker-compose.yml          # Container orchestration
 ├── .env.example                # Environment template
-├── Makefile                    # Development commands
 ├── database/
 │   └── schema.sql              # PostgreSQL schema (auto-applied)
 ├── services/
@@ -250,11 +246,11 @@ Integration tests run against the **real local containerized stack** (not mocks)
 
 ```bash
 # Run all integration tests
-make test
-
-# Watch mode
 cd tests/integration
 npm install
+npm test
+
+# Watch mode
 npm run test:watch
 ```
 
@@ -274,12 +270,12 @@ npm run test:watch
 docker ps
 
 # Check container logs
-docker compose logs
+docker-compose logs
 
 # Remove everything and start fresh
-make clean
-make setup
-make up
+docker-compose down -v --rmi local
+cp .env.example .env
+docker-compose up -d
 ```
 
 ### Port conflicts
@@ -288,16 +284,16 @@ If ports 3000, 5432, 6379, 8080, 9000, or 9001 are in use:
 
 1. Stop conflicting services
 2. Or edit `.env` and change port mappings
-3. Restart: `make restart`
+3. Restart: `docker-compose restart`
 
 ### Database schema not applied
 
 ```bash
 # Check postgres logs
-docker compose logs postgres
+docker-compose logs postgres
 
 # Manually apply schema
-cat database/schema.sql | docker compose exec -T postgres psql -U kanak -d kanak
+cat database/schema.sql | docker-compose exec -T postgres psql -U kanak -d kanak
 ```
 
 ### API can't connect to database
@@ -305,21 +301,21 @@ cat database/schema.sql | docker compose exec -T postgres psql -U kanak -d kanak
 ```bash
 # Verify DATABASE_URL in .env
 # Ensure postgres is healthy
-docker compose ps postgres
+docker-compose ps postgres
 
 # Check API logs
-make logs-api
+docker-compose logs -f api
 ```
 
 ### MinIO bucket not created
 
 ```bash
 # Check minio-setup logs
-docker compose logs minio-setup
+docker-compose logs minio-setup
 
 # Manually create bucket
-docker compose exec minio mc alias set local http://localhost:9000 minioadmin minioadmin
-docker compose exec minio mc mb local/kanak-documents
+docker-compose exec minio mc alias set local http://localhost:9000 minioadmin minioadmin
+docker-compose exec minio mc mb local/kanak-documents
 ```
 
 ---
@@ -330,8 +326,8 @@ This stack is designed to run on **any machine with Docker**:
 
 1. Clone repository
 2. Copy `.env.example` to `.env`
-3. Run `docker compose up -d`
-4. Verify with `make test`
+3. Run `docker-compose up -d`
+4. Verify with integration tests: `cd tests/integration && npm install && npm test`
 
 No cloud account, external API keys, or paid services required for M1–M3 core development.
 
@@ -385,9 +381,9 @@ Proprietary — Kanak AI, Inc.
 
 For questions or issues during M1 development:
 1. Check this README's Troubleshooting section
-2. Review logs: `make logs`
-3. Run health checks: `make health`
-4. Verify integration tests: `make test`
+2. Review logs: `docker-compose logs -f`
+3. Run health checks: `docker-compose ps`
+4. Verify integration tests: `cd tests/integration && npm test`
 
 ---
 

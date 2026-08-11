@@ -38,9 +38,6 @@ ls -la .env
 ```bash
 # Start all services
 docker-compose up -d
-
-# Or use Make
-make up
 ```
 
 **Expected**: All containers start without errors
@@ -185,9 +182,6 @@ access-control-allow-credentials: true
 
 ```bash
 # Run automated integration tests
-make test
-
-# Or manually:
 cd tests/integration
 npm install
 npm test
@@ -204,12 +198,12 @@ npm test
 
 ```bash
 # View all logs
-make logs
+docker-compose logs -f
 
 # Or specific services
-docker compose logs api
-docker compose logs web
-docker compose logs postgres
+docker-compose logs api
+docker-compose logs web
+docker-compose logs postgres
 ```
 
 **Expected**: No critical errors; normal startup messages
@@ -220,10 +214,7 @@ docker compose logs postgres
 
 ```bash
 # Stop services
-docker compose down
-
-# Or use Make
-make down
+docker-compose down
 ```
 
 **Expected**: All containers stop cleanly
