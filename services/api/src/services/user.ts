@@ -13,7 +13,7 @@ export async function findUserByIdentity(
   channel: IdentityChannel,
   identifier: string
 ): Promise<(User & { identities: AuthIdentity[] }) | null> {
-  const result = await query<User & { identities: string }>(
+  const result = await query<User & { identities: AuthIdentity[] }>(
     `
     SELECT 
       u.*,
@@ -39,10 +39,7 @@ export async function findUserByIdentity(
   }
 
   const row = result.rows[0];
-  return {
-    ...row,
-    identities: JSON.parse(row.identities as unknown as string),
-  };
+  return row;
 }
 
 /**

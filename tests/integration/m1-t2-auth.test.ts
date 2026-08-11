@@ -234,10 +234,11 @@ describe('M1-T2: Email Authentication Flow', () => {
       body: JSON.stringify({ email: testEmail, code: '000000' }),
     });
 
+    expect(response1.status).toBe(200);
     const data1 = await response1.json();
     const userId1 = data1.user.id;
 
-    // Second sign-in (same email)
+    // Second sign-in (same email) - need new OTP challenge
     await fetch(`${API_BASE_URL}/auth/email/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -250,6 +251,7 @@ describe('M1-T2: Email Authentication Flow', () => {
       body: JSON.stringify({ email: testEmail, code: '000000' }),
     });
 
+    expect(response2.status).toBe(200);
     const data2 = await response2.json();
     const userId2 = data2.user.id;
 
