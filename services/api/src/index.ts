@@ -1,12 +1,15 @@
 /**
  * Kanak AI API Server
  * M1-T1: Minimal Fastify server with health check endpoint
- * Auth, upload, and other routes will be added in M1-T2+
+ * M1-T2: Email authentication + session management
  */
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { config } from './config.js';
+import { authRoutes } from './routes/auth.js';
+import { meRoutes } from './routes/me.js';
+import { checkHealth } from './lib/db.js';
 
 const app = Fastify({
   logger: {
@@ -23,14 +26,20 @@ await app.register(cors, {
 /**
  * Health check endpoint
  * Returns 200 when API service is ready
+ * M1-T2: Added database connectivity check
  */
 app.get('/health', async () => {
+  const dbHealthy = await checkHealth();
+  
   return {
-    status: 'ok',
+    status: dbHealthy ? 'ok' : 'degraded',
     service: 'kanak-api',
     version: '0.1.0',
     env: config.env,
     timestamp: new Date().toISOString(),
+    checks: {
+      database: dbHealthy ? 'ok' : 'down',
+    },
   };
 });
 
@@ -47,26 +56,33 @@ app.get('/', async () => {
 });
 
 /**
- * V1 API routes (placeholder for M1-T1)
- * Auth routes will be added in M1-T2
- * Document routes will be added in M1-T4
+ * V1 API routes
+ * M1-T2: Auth and user profile routes
+ * M1-T3+: Document, alerts, quotes routes
  */
 app.register(async (v1) => {
+  // Root endpoint
   v1.get('/', async () => {
     return {
       message: 'Kanak AI API v1',
       endpoints: {
         auth: '/v1/auth/*',
-        documents: '/v1/documents',
-        alerts: '/v1/alerts',
-        quotes: '/v1/quotes',
-        ask: '/v1/ask',
-        account: '/v1/account',
-        events: '/v1/events',
+        me: '/v1/me',
+        documents: '/v1/documents (M1-T3)',
+        alerts: '/v1/alerts (M1+)',
+        quotes: '/v1/quotes (M1+)',
+        ask: '/v1/ask (M1+)',
+        account: '/v1/account (M1+)',
+        events: '/v1/events (M1-T6)',
       },
-      note: 'Endpoints will be implemented in M1-T2+',
     };
   });
+
+  // M1-T2: Authentication routes
+  await v1.register(authRoutes);
+  
+  // M1-T2: User profile routes
+  await v1.register(meRoutes);
 }, { prefix: '/v1' });
 
 /**
