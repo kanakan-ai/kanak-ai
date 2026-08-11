@@ -1,0 +1,22 @@
+{
+  "name": "kanak-ai",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "services/api",
+    "services/web",
+    "tests/integration"
+  ],
+  "scripts": {
+    "setup": "cp .env.example .env || true",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "test:integration": "cd tests/integration && npm install && npm test",
+    "clean": "docker compose down -v --rmi local"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
