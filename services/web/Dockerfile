@@ -9,6 +9,10 @@ RUN npm install
 # Copy source
 COPY . .
 
+# Accept API URL as build arg
+ARG VITE_API_BASE_URL=http://localhost:8080/v1
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build production bundle (M1-T1: minimal app)
 RUN npm run build
 

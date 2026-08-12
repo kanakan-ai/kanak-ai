@@ -102,6 +102,8 @@ services:
     build:
       context: ./services/web
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/v1}
     container_name: kanak-web
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/v1}
