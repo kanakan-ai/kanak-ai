@@ -118,9 +118,8 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           checksum: fileHash,
         });
 
-        // TODO M1: Enqueue parse job (stubbed for now)
-        // In M2, this will trigger actual AI parse
-        await documentService.updateDocumentStatus(document.id, 'parsing');
+        // Document created with status='pending'
+        // Worker will poll and process it automatically
 
         return reply.code(202).send({
           documentId: document.id,

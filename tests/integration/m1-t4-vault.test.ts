@@ -132,7 +132,7 @@ describe('M1-T4: Vault View & Stub Parse', () => {
     // Check denormalized columns
     expect(document.extracted_record.party_name).toBeTruthy();
     expect(document.extracted_record.reference_id).toBeTruthy();
-    expect(document.extracted_record.amount).toBeGreaterThan(0);
+    expect(parseFloat(document.extracted_record.amount as string)).toBeGreaterThan(0);
     expect(document.extracted_record.amount_frequency).toBe('annual');
     expect(document.extracted_record.key_date).toBeTruthy();
   });
@@ -155,7 +155,7 @@ describe('M1-T4: Vault View & Stub Parse', () => {
     expect(fieldKeys).toContain('dwelling_coverage');
 
     expect(document.extracted_record.party_name).toBeTruthy();
-    expect(document.extracted_record.amount).toBeGreaterThan(0);
+    expect(parseFloat(document.extracted_record.amount as string)).toBeGreaterThan(0);
   });
 
   test('Life insurance is parsed with correct fields', async () => {

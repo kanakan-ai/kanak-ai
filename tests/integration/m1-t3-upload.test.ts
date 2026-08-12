@@ -188,7 +188,7 @@ describe('M1-T3: Document Upload Flow', () => {
     const uploadedDoc = data.documents.find((d: any) => d.id === testDocumentId);
     expect(uploadedDoc).toBeTruthy();
     expect(uploadedDoc.document_type).toBe('auto_policy');
-    expect(uploadedDoc.status).toMatch(/pending|parsing/);
+    expect(uploadedDoc.status).toMatch(/pending|parsing|ready/); // Worker may process quickly
   });
 
   test('GET /v1/documents - should reject without authentication', async () => {
