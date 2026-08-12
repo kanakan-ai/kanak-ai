@@ -8,12 +8,12 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SignIn } from './components/SignIn';
-import { Dashboard } from './components/Dashboard';
 import { Upload } from './components/Upload';
 import { Vault } from './components/Vault';
 import { DocumentDetail } from './components/DocumentDetail';
+import { AppShell } from './components/AppShell';
 
-type Screen = 'vault' | 'upload' | 'document-detail' | 'dashboard';
+type Screen = 'vault' | 'upload' | 'document-detail';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -27,8 +27,8 @@ function AppContent() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8f9fa',
-        color: '#6c757d',
+        backgroundColor: '#0b1720',
+        color: '#dbe8ee',
       }}>
         Loading...
       </div>
@@ -39,71 +39,15 @@ function AppContent() {
     return <SignIn />;
   }
 
-  // Authenticated screens
-  if (currentScreen === 'upload') {
-    return (
-      <div>
-        {/* Back button */}
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          zIndex: 1000,
-        }}>
-          <button
-            onClick={() => setCurrentScreen('vault')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              color: '#17a2b8',
-              backgroundColor: '#fff',
-              border: '1px solid #e0e0e0',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#17a2b8';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e0e0e0';
-            }}
-          >
-            ← Back to Vault
-          </button>
-        </div>
-        <Upload onUploadComplete={() => setCurrentScreen('vault')} />
-      </div>
-    );
-  }
-
-  if (currentScreen === 'document-detail' && selectedDocumentId) {
-    return (
-      <DocumentDetail
-        documentId={selectedDocumentId}
-        onBack={() => {
-          setSelectedDocumentId(null);
-          setCurrentScreen('vault');
-        }}
-      />
-    );
-  }
-
-  if (currentScreen === 'dashboard') {
-    return <Dashboard onNavigateToUpload={() => setCurrentScreen('upload')} />;
-  }
-
-  // Default: Vault screen
-  return (
-    <Vault
-      onNavigateToUpload={() => setCurrentScreen('upload')}
-      onNavigateToDetail={(documentId) => {
-        setSelectedDocumentId(documentId);
-        setCurrentScreen('document-detail');
-      }}
-    />
-  );
+  const navigate = (screen: 'vault' | 'upload') => {
+    setSelectedDocumentId(null);
+    setCurrentScreen(screen);
+  };
+  let content;
+  if (currentScreen === 'upload') content = <Upload onUploadComplete={() => navigate('vault')} onBack={() => navigate('vault')} />;
+  else if (currentScreen === 'document-detail' && selectedDocumentId) content = <DocumentDetail documentId={selectedDocumentId} onBack={() => navigate('vault')} />;
+  else content = <Vault onNavigateToUpload={() => navigate('upload')} onNavigateToDetail={(documentId) => { setSelectedDocumentId(documentId); setCurrentScreen('document-detail'); }} />;
+  return <AppShell screen={currentScreen} onNavigate={navigate}>{content}</AppShell>;
 }
 
 function App() {

@@ -34,13 +34,15 @@
    - Click "Send code" → should show OTP input
    - Enter code `000000` (mock mode)
    - Click "Verify" → should authenticate successfully
-3. **Verify**: You land on Vault screen (not Dashboard)
+3. **Verify**: You land on the Vault screen after sign-in.
 4. **Verify**: Empty state shows:
    - Large document icon (📄)
    - "No documents yet" text
    - "Upload your first document to get started" subtext
-   - Blue "Upload Document" button
-5. **Verify**: Bottom navigation shows: Vault (active/blue) | Ask (gray) | Settings (gray)
+   - Teal "Upload a document" button
+5. **Verify**: The default appearance is dark, with a clear Kanak AI brand and **Vault** as the page title.
+6. **Desktop check (browser width ≥900px)**: A persistent left navigation is visible with Kanak AI, Vault, unavailable Ask/Settings items, and the signed-in email plus **Sign out**. The content is a desktop-width layout, not a stretched phone screen.
+7. **Narrow-screen check (browser width <760px)**: The compact bottom navigation is visible and usable; the desktop sidebar is not shown.
 
 **Expected result**: Clean empty state with clear CTA to upload first document
 
@@ -48,16 +50,14 @@
 
 ### Part 2: Upload and Parse Flow
 
-6. Click "Upload Document" button
-7. **Verify**: Upload screen appears with:
+8. Click "Upload document" button
+9. **Verify**: Upload screen appears inside the same Kanak AI application shell with:
    - Document type dropdown (required, pre-select needed)
    - File picker
-8. Select document type: **Auto Insurance Policy**
-9. Choose any PDF file (create a test PDF if needed)
-10. Click "Upload Document"
-11. **Verify**: Upload progress shows
-12. **Verify**: Success message appears
-13. **Verify**: Automatically returns to Vault screen after upload
+10. Select document type: **Auto Insurance Policy**
+11. Choose any PDF file (create a test PDF if needed)
+12. Click "Upload document"
+13. **Verify**: The upload action shows a loading state, then returns to Vault
 
 **Expected result**: Document appears in vault list within 2-3 seconds with "Processing..." status
 
@@ -70,7 +70,7 @@
     - 🚗 icon with green checkmark (ready status)
     - Title: "Auto Insurance • State Farm" (or similar)
     - Subtitle: "$1,245/yr" (or similar premium)
-    - Countdown badge: "60 days" (or similar, color-coded green)
+    - A readable renewal line and countdown badge (for example, "Renews on Oct 3, 2026" and "52 days")
 16. **Verify**: Document appears in **"ALL DOCUMENTS"** section
 17. **Verify**: If renewal date is within 30 days, document ALSO appears in **"UPCOMING"** section above
 
@@ -98,7 +98,7 @@
 ### Part 5: Document Detail View
 
 28. Click on the **Auto Insurance** card
-29. **Verify**: Document detail screen appears with:
+29. **Verify**: Document detail appears inside the same Kanak AI shell with:
     - Back button (← Back)
     - Header: "Auto Insurance • State Farm"
     - Status badge: "Ready" (green)
@@ -117,7 +117,7 @@
     - Vehicle year/make/model
     - Deductibles
     - Liability coverages
-32. **Verify**: Blue "Open original PDF" button at bottom
+32. **Verify**: "Open original PDF" button at bottom
 33. Click "Open original PDF"
 34. **Verify**: PDF downloads successfully
 
@@ -179,15 +179,12 @@
 
 ### Part 10: Sign Out and Persistence
 
-55. Click Settings icon in bottom nav (⚙️ icon)
-56. **Note**: Settings screen not fully implemented in M1-T4, but verify icon is present
-57. Open browser DevTools → Application → Local Storage
-58. **Verify**: User session token present
-59. Refresh page (F5)
-60. **Verify**: Still logged in, vault list persists
-61. Sign out (if Dashboard link available) or clear local storage
-62. Refresh page
-63. **Verify**: Returns to sign-in screen
+55. Refresh the browser page (F5).
+56. **Verify**: You remain signed in and the vault is shown.
+57. Click **Sign out** in the account area (desktop sidebar) or mobile header.
+58. **Verify**: You return to the Kanak AI sign-in screen.
+59. Refresh the browser page again.
+60. **Verify**: The app remains on sign-in; it does not restore the prior session.
 
 **Expected result**: Session persists across refresh; sign-out clears session
 
@@ -206,7 +203,8 @@
 - ✅ "Open original PDF" downloads the file
 - ✅ "Compare rates" button appears for insurance policies only
 - ✅ Navigation (vault ↔ detail) works smoothly
-- ✅ Bottom nav shows Vault (active), Ask (inactive), Settings (inactive)
+- ✅ Sign out is visible and works from the authenticated app shell
+- ✅ Desktop uses a Kanak AI sidebar and desktop-width content; narrow screens use compact navigation
 - ✅ Processing status visible during parse
 - ✅ Status updates to "Ready" automatically
 - ✅ Multiple document types supported (auto, home, life, warranty, tax, receipt, other)
@@ -227,7 +225,8 @@
 - "from document" attribution missing
 - PDF download fails
 - Back navigation breaks
-- Bottom nav not visible or incorrect
+- Sign out is missing, fails to return to sign-in, or a refresh restores the signed-out session
+- Desktop renders as a stretched mobile screen, or narrow screens have unusable navigation
 - Status doesn't update from "Processing" to "Ready"
 - Visual design significantly deviates from mocks
 
@@ -240,8 +239,8 @@
 - Renewal dates set to ~2 months in future by default
 - Denormalized columns (party_name, amount, key_date) populated for sorting/filtering
 - Extracted records stored in JSONB fields array per OpenAPI FieldValue[] spec
-- Web UI uses inline styles matching mockup colors (teal accent #17a2b8, light theme)
-- Bottom nav tabs (Ask, Settings) are visual only in M1-T4; full implementation in later milestones
+- Web UI uses a shared dark-default theme with teal accents. Light-theme preference persistence remains outside this scoped remediation because `PATCH /v1/me` is not implemented.
+- Ask and Settings remain unavailable visual placeholders in M1-T4; full implementation is in later milestones.
 
 ---
 
