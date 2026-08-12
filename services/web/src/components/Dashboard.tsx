@@ -1,11 +1,16 @@
 /**
  * Dashboard Component
  * Protected home page showing user profile
+ * M1-T3: Added upload navigation
  */
 
 import { useAuth } from '../contexts/AuthContext';
 
-export function Dashboard() {
+interface DashboardProps {
+  onNavigateToUpload?: () => void;
+}
+
+export function Dashboard({ onNavigateToUpload }: DashboardProps) {
   const { user, logout } = useAuth();
 
   async function handleLogout() {
@@ -256,15 +261,44 @@ export function Dashboard() {
           backgroundColor: '#1a1a1a',
           border: '1px solid #2a2a2a',
           borderRadius: '12px',
-          textAlign: 'center',
         }}>
-          <p style={{
-            fontSize: '0.875rem',
-            color: '#666',
-            margin: 0,
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
           }}>
-            🚧 Document upload, vault, and assistant features coming in M1-T3 through M1-T7
-          </p>
+            <button
+              onClick={onNavigateToUpload}
+              style={{
+                padding: '1rem 2rem',
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#ffffff',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+            >
+              📄 Upload Document
+            </button>
+            <p style={{
+              fontSize: '0.875rem',
+              color: '#666',
+              margin: 0,
+              textAlign: 'center',
+            }}>
+              Vault view, alerts, and assistant features coming in M1-T4 through M1-T7
+            </p>
+          </div>
         </div>
       </div>
     </div>

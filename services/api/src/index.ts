@@ -2,14 +2,18 @@
  * Kanak AI API Server
  * M1-T1: Minimal Fastify server with health check endpoint
  * M1-T2: Email authentication + session management
+ * M1-T3: Document upload and vault
  */
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { config } from './config.js';
 import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
+import documentRoutes from './routes/documents.js';
 import { checkHealth } from './lib/db.js';
+import { initMinIO } from './services/storage.js';
 
 const app = Fastify({
   logger: {
@@ -21,6 +25,13 @@ const app = Fastify({
 await app.register(cors, {
   origin: true, // Allow all origins in development; restrict in production
   credentials: true,
+});
+
+// Multipart form support for file uploads (M1-T3)
+await app.register(multipart, {
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB max file size
+  },
 });
 
 /**
@@ -80,9 +91,12 @@ app.register(async (v1) => {
 
   // M1-T2: Authentication routes
   await v1.register(authRoutes);
-  
+    
   // M1-T2: User profile routes
   await v1.register(meRoutes);
+
+  // M1-T3: Document routes
+  await v1.register(documentRoutes);
 }, { prefix: '/v1' });
 
 /**
@@ -90,6 +104,10 @@ app.register(async (v1) => {
  */
 async function start() {
   try {
+    // Initialize MinIO storage (M1-T3)
+    await initMinIO();
+    console.log('✓ MinIO initialized');
+
     await app.listen({
       port: config.port,
       host: '0.0.0.0',

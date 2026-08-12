@@ -26,6 +26,8 @@ function extractBearerToken(authorization?: string): string | null {
 /**
  * Authenticate middleware
  * Validates session token and attaches user to request
+ * 
+ * Use as: onRequest: [authenticateRequest]
  */
 export async function authenticate(
   request: FastifyRequest,
@@ -62,6 +64,9 @@ export async function authenticate(
   (request as any).user = user;
   (request as any).userId = userId;
 }
+
+// Export alias for consistency
+export const authenticateRequest = authenticate;
 
 /**
  * Optional auth middleware

@@ -1,7 +1,10 @@
 /**
  * Type definitions for auth and user data
  * M1-T2: Core types matching database schema and OpenAPI spec
+ * M1-T3: AuthenticatedRequest for protected endpoints
  */
+
+import type { FastifyRequest } from 'fastify';
 
 export type PlanTier = 'free' | 'pro' | 'platinum';
 export type UserRole = 'customer' | 'admin';
@@ -79,4 +82,16 @@ export interface OtpStartResponse {
   channel: 'sms' | 'email';
   expiresInSeconds: number;
   devHint?: string;
+}
+
+/**
+ * Authenticated request type (M1-T3)
+ * Used for protected routes that require authentication
+ */
+export interface AuthenticatedRequest extends FastifyRequest {
+  user: User & {
+    email?: string;
+    phone?: string;
+  };
+  userId: string;
 }

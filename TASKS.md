@@ -75,35 +75,43 @@
 
 ---
 
-### ⬜ M1-T3: Upload flow (API + Web UI)
+### ✅ M1-T3: Upload flow (API + Web UI)
 
-**Status**: Not started  
+**Status**: Complete  
 **Depends on**: M1-T2
 
 **Backend deliverables**:
-- `POST /v1/documents` - Multipart PDF upload
-- Store PDF in MinIO (kanak-documents bucket)
-- Create document record in DB (status: pending_parse)
-- Document type validation (auto_policy, home_policy, etc.)
-- File type and size validation
-- Authenticated endpoint (requires session)
+- ✅ `POST /v1/documents` - Multipart PDF upload
+- ✅ `GET /v1/documents` - List user's documents
+- ✅ `GET /v1/documents/:id` - Document detail with presigned URL
+- ✅ `GET /v1/documents/:id/download` - Download proxy endpoint
+- ✅ `DELETE /v1/documents/:id` - Delete document
+- ✅ Store PDF in MinIO (kanak-documents bucket)
+- ✅ Create document record in DB (status: pending → parsing)
+- ✅ Document type validation (7 types: auto_policy, home_policy, life_insurance, warranty, tax, receipt, other)
+- ✅ File type and size validation (PDF only, 25MB max)
+- ✅ SHA-256 file hashing and integrity checks
+- ✅ Authenticated endpoints (requires session)
 
 **Frontend deliverables**:
-- Upload screen with file picker
-- Document type selection dropdown
-- Upload progress indicator
-- Success confirmation
-- Error handling (file too large, wrong type, etc.)
-- Authenticated route (redirect to sign-in if not logged in)
+- ✅ Upload screen with file picker
+- ✅ Document type selection dropdown (7 types)
+- ✅ Upload progress indicator (0-100%)
+- ✅ Success confirmation with auto-navigation
+- ✅ Error handling (file too large, wrong type, missing type, etc.)
+- ✅ Dashboard navigation button
+- ✅ Back button navigation
+- ✅ Authenticated route (redirect to sign-in if not logged in)
 
 **Exit criteria**:
-- User can upload PDF via web UI
-- File stored in MinIO
-- Document record in database
-- Integration tests pass
-- Human verification script complete
+- ✅ User can upload PDF via web UI
+- ✅ File stored in MinIO
+- ✅ Document record in database
+- ✅ Integration tests pass (13 tests, 31 total)
+- ✅ Human verification script complete
+- ✅ Download endpoint accessible from host machine
 
-**Verification**: `docs/M1-T3-verification.md` (to be created)
+**Verification**: [docs/M1-T3-verification.md](docs/M1-T3-verification.md)
 
 ---
 
