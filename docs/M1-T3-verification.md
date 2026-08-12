@@ -393,7 +393,7 @@ docker-compose exec minio mc ls local/kanak-documents --recursive
 
 Once all manual tests pass:
 
-1. Update `kanak-ai-specs/TASKS.md` to mark M1-T3 as complete
+1. Update `m1_tasks.md` to mark M1-T3 as complete
 2. Commit changes with message: `M1-T3: Implement document upload flow (API + Web UI)`
 3. Push to GitHub
 4. Proceed to M1-T4: Vault view
