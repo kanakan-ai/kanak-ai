@@ -3,6 +3,7 @@
  * M1-T1: Minimal Fastify server with health check endpoint
  * M1-T2: Email authentication + session management
  * M1-T3: Document upload and vault
+ * M1-T4: Vault view with stub parse worker
  */
 
 import Fastify from 'fastify';
@@ -14,6 +15,7 @@ import { meRoutes } from './routes/me.js';
 import documentRoutes from './routes/documents.js';
 import { checkHealth } from './lib/db.js';
 import { initMinIO } from './services/storage.js';
+import { startStubParseWorker } from './workers/stub-parse-worker.js';
 
 const app = Fastify({
   logger: {
@@ -107,6 +109,10 @@ async function start() {
     // Initialize MinIO storage (M1-T3)
     await initMinIO();
     console.log('✓ MinIO initialized');
+
+    // Start stub parse worker (M1-T4)
+    startStubParseWorker();
+    console.log('✓ Stub parse worker started');
 
     await app.listen({
       port: config.port,

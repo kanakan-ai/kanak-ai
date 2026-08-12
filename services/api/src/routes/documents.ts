@@ -1,6 +1,7 @@
 /**
  * Document routes
  * M1-T3: PDF upload and vault endpoints
+ * M1-T4: Enhanced with extracted records
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -10,6 +11,7 @@ import { authenticateRequest } from '../middleware/auth.js';
 import type { AuthenticatedRequest } from '../types/auth.js';
 import * as documentService from '../services/document.js';
 import * as storageService from '../services/storage.js';
+import * as extractedRecordService from '../services/extracted-record.js';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ALLOWED_DOCUMENT_TYPES = [
@@ -138,6 +140,7 @@ export default async function documentRoutes(fastify: FastifyInstance) {
   /**
    * GET /v1/documents
    * List user's documents
+   * M1-T4: Include extracted records for vault display
    */
   fastify.get(
     '/documents',
@@ -168,7 +171,17 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           parsedLimit
         );
 
-        return reply.send({ documents });
+        // Get extracted records for all documents
+        const documentIds = documents.map((doc) => doc.id);
+        const extractedRecordsMap = await extractedRecordService.getExtractedRecordsByDocumentIds(documentIds);
+
+        // Combine documents with their extracted records
+        const documentsWithRecords = documents.map((doc) => ({
+          ...doc,
+          extracted_record: extractedRecordsMap.get(doc.id) || null,
+        }));
+
+        return reply.send({ documents: documentsWithRecords });
       } catch (error) {
         request.log.error({ err: error }, 'Failed to list documents');
         return reply.code(500).send({
@@ -182,6 +195,7 @@ export default async function documentRoutes(fastify: FastifyInstance) {
   /**
    * GET /v1/documents/:id
    * Get document detail
+   * M1-T4: Include extracted records
    */
   fastify.get(
     '/documents/:id',
@@ -206,6 +220,9 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // Get extracted record if available
+        const extractedRecord = await extractedRecordService.getExtractedRecordByDocumentId(document.id);
+
         // Generate presigned URL for PDF download
         const downloadUrl = await storageService.getPresignedUrl(
           document.storage_key,
@@ -214,6 +231,7 @@ export default async function documentRoutes(fastify: FastifyInstance) {
 
         return reply.send({
           ...document,
+          extracted_record: extractedRecord || null,
           download_url: downloadUrl,
         });
       } catch (error) {

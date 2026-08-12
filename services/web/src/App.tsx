@@ -2,6 +2,7 @@
  * Kanak AI Web App
  * M1-T2: Email authentication with sign-in flow
  * M1-T3: Document upload navigation
+ * M1-T4: Vault and document detail screens
  */
 
 import { useState } from 'react';
@@ -9,12 +10,15 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SignIn } from './components/SignIn';
 import { Dashboard } from './components/Dashboard';
 import { Upload } from './components/Upload';
+import { Vault } from './components/Vault';
+import { DocumentDetail } from './components/DocumentDetail';
 
-type Screen = 'dashboard' | 'upload';
+type Screen = 'vault' | 'upload' | 'document-detail' | 'dashboard';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('vault');
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -23,8 +27,8 @@ function AppContent() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0a0a0a',
-        color: '#a0a0a0',
+        backgroundColor: '#f8f9fa',
+        color: '#6c757d',
       }}>
         Loading...
       </div>
@@ -47,36 +51,59 @@ function AppContent() {
           zIndex: 1000,
         }}>
           <button
-            onClick={() => setCurrentScreen('dashboard')}
+            onClick={() => setCurrentScreen('vault')}
             style={{
               padding: '0.75rem 1.5rem',
               fontSize: '0.875rem',
-              fontWeight: '500',
-              color: '#a0a0a0',
-              backgroundColor: '#1a1a2e',
-              border: '1px solid #2a2a2a',
+              fontWeight: '600',
+              color: '#17a2b8',
+              backgroundColor: '#fff',
+              border: '1px solid #e0e0e0',
               borderRadius: '8px',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#667eea';
-              e.currentTarget.style.color = '#667eea';
+              e.currentTarget.style.borderColor = '#17a2b8';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#2a2a2a';
-              e.currentTarget.style.color = '#a0a0a0';
+              e.currentTarget.style.borderColor = '#e0e0e0';
             }}
           >
-            ← Back to Dashboard
+            ← Back to Vault
           </button>
         </div>
-        <Upload onUploadComplete={() => setCurrentScreen('dashboard')} />
+        <Upload onUploadComplete={() => setCurrentScreen('vault')} />
       </div>
     );
   }
 
-  return <Dashboard onNavigateToUpload={() => setCurrentScreen('upload')} />;
+  if (currentScreen === 'document-detail' && selectedDocumentId) {
+    return (
+      <DocumentDetail
+        documentId={selectedDocumentId}
+        onBack={() => {
+          setSelectedDocumentId(null);
+          setCurrentScreen('vault');
+        }}
+      />
+    );
+  }
+
+  if (currentScreen === 'dashboard') {
+    return <Dashboard onNavigateToUpload={() => setCurrentScreen('upload')} />;
+  }
+
+  // Default: Vault screen
+  return (
+    <Vault
+      onNavigateToUpload={() => setCurrentScreen('upload')}
+      onNavigateToDetail={(documentId) => {
+        setSelectedDocumentId(documentId);
+        setCurrentScreen('document-detail');
+      }}
+    />
+  );
 }
 
 function App() {
