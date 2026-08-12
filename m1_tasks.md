@@ -283,4 +283,4 @@ Per `mvp-scope-and-milestones.md`:
 ---
 
 **Last updated**: 2026-08-11  
-**Current task**: M1-T2 (Sign-in flow)
+**Current task**: M1-T4 (Vault view)
