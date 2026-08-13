@@ -13,7 +13,10 @@ import { config } from './config.js';
 import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
 import documentRoutes from './routes/documents.js';
+import { eventsRoutes } from './routes/events.js';
+import { adminRoutes } from './routes/admin.js';
 import { checkHealth } from './lib/db.js';
+import { recordLatency } from './lib/latency.js';
 import { initMinIO } from './services/storage.js';
 import { startStubParseWorker } from './workers/stub-parse-worker.js';
 
@@ -34,6 +37,11 @@ await app.register(multipart, {
   limits: {
     fileSize: 25 * 1024 * 1024, // 25MB max file size
   },
+});
+
+// M1-T6: request latency samples for the admin ops dashboard
+app.addHook('onResponse', async (request, reply) => {
+  recordLatency(reply.elapsedTime);
 });
 
 /**
@@ -99,6 +107,10 @@ app.register(async (v1) => {
 
   // M1-T3: Document routes
   await v1.register(documentRoutes);
+
+  // M1-T6: Analytics ingestion + admin ops dashboard
+  await v1.register(eventsRoutes);
+  await v1.register(adminRoutes);
 }, { prefix: '/v1' });
 
 /**

@@ -191,33 +191,37 @@
 
 ---
 
-### ⬜ M1-T6: Analytics events + Ops dashboard
+### ✅ M1-T6: Analytics events + Ops dashboard
 
-**Status**: Not started  
+**Status**: Complete
+**Completed**: 2026-08-13
 **Depends on**: M1-T2, M1-T3
 
 **Backend deliverables**:
-- `POST /v1/events` - Event ingestion endpoint
-- Server-side events: auth success, upload accepted
-- Analytics events table queries
-- Event validation and schema enforcement
+- ✅ `POST /v1/events` - Event ingestion endpoint (per existing OpenAPI `EventBatchRequest` contract)
+- ✅ Server-side events: `auth_sign_in_success` (email/phone/Apple), `document_upload_accepted`
+- ✅ Analytics events table queries (recent-by-event, count-since, daily counts)
+- ✅ Event validation and schema enforcement (event name, client enum, properties shape, batch size)
+- ✅ `GET /v1/admin/ops-summary` (role=admin only) — API/DB health, in-process latency, event counts + recent samples
 
 **Frontend deliverables** (Admin UI):
-- Admin dashboard route (role=admin only)
-- API health/latency metrics
-- Recent auth events table
-- Recent upload events table
-- Event count charts
-- Time-series visualizations
+- ✅ Admin dashboard route (`/admin`, role=admin only; not linked from customer nav; non-admins redirected to Vault)
+- ✅ API health/latency metrics (p50/p95/avg + sample count)
+- ✅ Recent auth events table
+- ✅ Recent upload events table
+- ✅ Event count charts (7-day bars for sign-ins and uploads)
+- ✅ Time-series visualization (daily counts)
 
 **Exit criteria**:
-- Auth and upload events tracked
-- Admin can view ops dashboard
-- Events persisted to analytics_events table
-- Integration tests pass
-- Human verification script complete
+- ✅ Auth and upload events tracked
+- ✅ Admin can view ops dashboard
+- ✅ Events persisted to analytics_events table
+- ✅ Integration tests pass (9 tests, 55 total)
+- ✅ Human verification script complete
 
-**Verification**: `docs/M1-T6-verification.md` (to be created)
+**Note**: `kanak-ai-specs/design/api/openapi.yaml` was not updated for `GET /v1/admin/ops-summary` — `agents.md` restricts this repo's agents to writing code only in `kanak-ai`. Contract is documented in code (`services/api/src/routes/admin.ts`).
+
+**Verification**: [docs/M1-T6-verification.md](docs/M1-T6-verification.md)
 
 ---
 
@@ -272,12 +276,12 @@
 Per `mvp-scope-and-milestones.md`:
 
 ✅ **On web against local containers:**
-- [ ] User can sign in via passwordless methods (email OTP/magic link, phone OTP, Apple)
-- [ ] User can upload a PDF
-- [ ] User can see a placeholder vault item with stub extracted fields
-- [ ] Auth/upload events land in the event store
-- [ ] Basic ops dashboard shows API health and events
-- [ ] README explains how to bring stack up locally with no cloud account
+- [x] User can sign in via passwordless methods (email OTP/magic link, phone OTP, Apple)
+- [x] User can upload a PDF
+- [x] User can see a placeholder vault item with stub extracted fields
+- [x] Auth/upload events land in the event store
+- [x] Basic ops dashboard shows API health and events
+- [ ] README explains how to bring stack up locally with no cloud account (tracked in M1-T8)
 
 **Not required in M1:**
 - Mobile (React Native) project
@@ -297,5 +301,5 @@ Per `mvp-scope-and-milestones.md`:
 
 ---
 
-**Last updated**: 2026-08-12  
-**Current task**: M1-T5 (Complete) | Next: M1-T6 (Analytics events + Ops dashboard)
+**Last updated**: 2026-08-13
+**Current task**: M1-T6 (Complete) | Next: M1-T7 (First-run experience)

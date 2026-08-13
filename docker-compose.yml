@@ -82,6 +82,7 @@ services:
       MINIO_EXTERNAL_ENDPOINT: ${MINIO_EXTERNAL_ENDPOINT:-localhost:9000}
       AUTH_MODE: ${AUTH_MODE:-mock}
       SESSION_SECRET: ${SESSION_SECRET:-dev_session_secret_change_in_production}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:

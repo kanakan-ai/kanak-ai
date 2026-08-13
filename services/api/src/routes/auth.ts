@@ -10,6 +10,7 @@ import { createSession, revokeSession } from '../services/session.js';
 import { findUserByIdentity, findUserById, createUser, getUserIdentities, toUserProfile } from '../services/user.js';
 import type { SessionResponse, OtpStartResponse, User } from '../types/auth.js';
 import { authenticate } from '../middleware/auth.js';
+import { recordEvent } from '../services/analytics.js';
 
 export async function authRoutes(app: FastifyInstance) {
   async function issueSession(channel: 'email' | 'phone' | 'apple', identifier: string, userAgent?: string): Promise<SessionResponse> {
@@ -22,6 +23,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (!user) throw new Error('Failed to load user');
     const identities = await getUserIdentities(user.id);
     const session = await createSession(user.id, userAgent);
+    await recordEvent({ userId: user.id, event: 'auth_sign_in_success', properties: { auth_channel: channel } });
     return { accessToken: session.token, tokenType: 'Bearer', expiresInSeconds: session.expiresInSeconds, user: toUserProfile(user, identities) };
   }
 
@@ -156,6 +158,7 @@ export async function authRoutes(app: FastifyInstance) {
 
       // Create session
       const session = await createSession(userId, request.headers['user-agent']);
+      await recordEvent({ userId, event: 'auth_sign_in_success', properties: { auth_channel: 'email' } });
 
       // Build response
       const response: SessionResponse = {

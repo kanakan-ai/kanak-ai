@@ -12,6 +12,7 @@ import type { AuthenticatedRequest } from '../types/auth.js';
 import * as documentService from '../services/document.js';
 import * as storageService from '../services/storage.js';
 import * as extractedRecordService from '../services/extracted-record.js';
+import { recordEvent } from '../services/analytics.js';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ALLOWED_DOCUMENT_TYPES = [
@@ -120,6 +121,12 @@ export default async function documentRoutes(fastify: FastifyInstance) {
 
         // Document created with status='pending'
         // Worker will poll and process it automatically
+
+        await recordEvent({
+          userId: authReq.user!.id,
+          event: 'document_upload_accepted',
+          properties: { document_type: documentType },
+        });
 
         return reply.code(202).send({
           documentId: document.id,

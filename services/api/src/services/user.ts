@@ -4,6 +4,7 @@
  */
 
 import { query } from '../lib/db.js';
+import { config } from '../config.js';
 import type { User, UserProfile, IdentityChannel, AuthIdentity } from '../types/auth.js';
 
 /**
@@ -61,9 +62,13 @@ export async function createUser(
   channel: IdentityChannel,
   identifier: string
 ): Promise<User> {
-  // Start transaction
+  // M1-T6: local/dev admin bootstrap — an email on ADMIN_EMAILS becomes role='admin'
+  // on first sign-in so the ops dashboard has a reachable account. Never customer-facing.
+  const role = channel === 'email' && config.adminEmails.includes(identifier.toLowerCase()) ? 'admin' : 'customer';
+
   const userResult = await query<User>(
-    `INSERT INTO users (plan, role) VALUES ('free', 'customer') RETURNING *`
+    `INSERT INTO users (plan, role) VALUES ('free', $1) RETURNING *`,
+    [role]
   );
 
   const user = userResult.rows[0];

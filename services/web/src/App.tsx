@@ -12,11 +12,15 @@ import { Upload } from './components/Upload';
 import { Vault } from './components/Vault';
 import { DocumentDetail } from './components/DocumentDetail';
 import { AppShell } from './components/AppShell';
+import { AdminDashboard } from './components/AdminDashboard';
 
 type Screen = 'vault' | 'upload' | 'document-detail';
 
+// Admin console: role-gated, never linked from customer nav (STEERING.md rule 7).
+const isAdminPath = window.location.pathname.startsWith('/admin');
+
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('vault');
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
@@ -37,6 +41,15 @@ function AppContent() {
 
   if (!isAuthenticated) {
     return <SignIn />;
+  }
+
+  if (isAdminPath) {
+    // Non-admins get no indication an admin route exists — sent straight back to their vault.
+    if (user?.role !== 'admin') {
+      window.location.replace('/');
+      return null;
+    }
+    return <AdminDashboard />;
   }
 
   const navigate = (screen: 'vault' | 'upload') => {

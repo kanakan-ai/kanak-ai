@@ -24,11 +24,12 @@ export interface Config {
     mode: 'mock' | 'real';
     sessionSecret: string;
   };
+  adminEmails: string[];
 }
 
 function getEnv(key: string, defaultValue?: string): string {
   const value = process.env[key];
-  if (!value && !defaultValue) {
+  if (!value && defaultValue === undefined) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
   return value || defaultValue!;
@@ -55,4 +56,10 @@ export const config: Config = {
     mode: getEnv('AUTH_MODE', 'mock') as 'mock' | 'real',
     sessionSecret: getEnv('SESSION_SECRET'),
   },
+  // M1-T6: emails in this list get role='admin' on first sign-in, for local admin ops dashboard access.
+  // Admin console must never be linked from customer UI (STEERING.md rule 7).
+  adminEmails: getEnv('ADMIN_EMAILS', '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean),
 };
