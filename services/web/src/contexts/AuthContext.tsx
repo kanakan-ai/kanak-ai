@@ -9,7 +9,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 
 export interface User {
   id: string;
-  email: string;
+  email?: string;
+  phone?: string;
   appleLinked: boolean;
   plan: string;
   role: string;
@@ -33,6 +34,9 @@ interface AuthContextType {
   isLoading: boolean;
   startEmailAuth: (email: string, preferMagicLink?: boolean) => Promise<{ expiresInSeconds: number }>;
   verifyEmailAuth: (email: string, code: string) => Promise<void>;
+  startPhoneAuth: (phone: string) => Promise<{ expiresInSeconds: number }>;
+  verifyPhoneAuth: (phone: string, code: string) => Promise<void>;
+  signInWithApple: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -104,12 +108,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function verifyEmailAuth(email: string, code: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/auth/email/verify`, {
+    await storeSession(await requestSession('/auth/email/verify', { email, code }));
+  }
+
+  async function requestSession(path: string, body: object): Promise<SessionResponse> {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, code }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -117,31 +125,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(error.message || 'Failed to verify code');
     }
 
-    const data: SessionResponse = await response.json();
-    
-    // Store token and update state
+    return response.json();
+  }
+
+  async function storeSession(data: SessionResponse): Promise<void> {
     localStorage.setItem(TOKEN_KEY, data.accessToken);
     setToken(data.accessToken);
     setUser(data.user);
   }
 
+  async function startPhoneAuth(phone: string): Promise<{ expiresInSeconds: number }> {
+    const response = await fetch(`${API_BASE_URL}/auth/phone/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
+    if (!response.ok) { const error = await response.json(); throw new Error(error.message || 'Failed to send verification code'); }
+    const data = await response.json(); return { expiresInSeconds: data.expiresInSeconds };
+  }
+
+  async function verifyPhoneAuth(phone: string, code: string): Promise<void> { await storeSession(await requestSession('/auth/phone/verify', { phone, code })); }
+
+  async function signInWithApple(): Promise<void> { await storeSession(await requestSession('/auth/apple', { identityToken: 'mock-apple-web-user' })); }
+
   async function logout(): Promise<void> {
     if (!token) return;
-
+    const tokenToRevoke = token;
+    // End the local session first. Server revocation can be slow in the M1 mock
+    // implementation because session hashes are deliberately one-way bcrypt values.
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setUser(null);
     try {
       await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${tokenToRevoke}`,
         },
       });
     } catch (error) {
       console.error('Logout request failed:', error);
-    } finally {
-      // Always clear local state
-      localStorage.removeItem(TOKEN_KEY);
-      setToken(null);
-      setUser(null);
     }
   }
 
@@ -158,6 +177,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     startEmailAuth,
     verifyEmailAuth,
+    startPhoneAuth,
+    verifyPhoneAuth,
+    signInWithApple,
     logout,
     refreshUser,
   };

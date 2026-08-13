@@ -164,6 +164,35 @@ export async function verifyEmailOtp(
   return true;
 }
 
+/** Start phone OTP flow. SMS delivery remains a local mock in M1. */
+export async function startPhoneOtp(phone: string): Promise<{ expiresInSeconds: number; devHint?: string }> {
+  const code = config.auth.mode === 'mock' ? '000000' : generateOtpCode();
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000);
+  await query(
+    `INSERT INTO otp_challenges (channel, identifier, code_hash, expires_at, max_attempts) VALUES ($1, $2, $3, $4, $5)`,
+    ['phone', phone, await hashCode(code), expiresAt, MAX_ATTEMPTS]
+  );
+  if (config.auth.mode === 'mock') {
+    console.log(`MOCK SMS (AUTH_MODE=mock) to ${phone}: Kanak AI code ${code}`);
+    return { expiresInSeconds: OTP_EXPIRY_SECONDS, devHint: 'Use code 000000' };
+  }
+  return { expiresInSeconds: OTP_EXPIRY_SECONDS };
+}
+
+/** Verify an OTP for any passwordless channel. */
+export async function verifyOtp(channel: 'email' | 'phone', identifier: string, code: string): Promise<boolean> {
+  const result = await query<OtpChallenge>(
+    `SELECT * FROM otp_challenges WHERE channel = $1 AND identifier = $2 AND expires_at > NOW() AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`,
+    [channel, identifier]
+  );
+  const challenge = result.rows[0];
+  if (!challenge || challenge.attempts >= challenge.max_attempts) return false;
+  const isValid = await bcrypt.compare(code, challenge.code_hash);
+  await query(`UPDATE otp_challenges SET attempts = attempts + 1 WHERE id = $1`, [challenge.id]);
+  if (isValid) await query(`UPDATE otp_challenges SET consumed_at = NOW() WHERE id = $1`, [challenge.id]);
+  return isValid;
+}
+
 /**
  * Clean up expired challenges (background job)
  */

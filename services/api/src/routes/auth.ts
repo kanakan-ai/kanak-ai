@@ -4,13 +4,54 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { startEmailOtp, verifyEmailOtp } from '../services/auth.js';
+import { startEmailOtp, verifyEmailOtp, startPhoneOtp, verifyOtp } from '../services/auth.js';
+import { config } from '../config.js';
 import { createSession, revokeSession } from '../services/session.js';
 import { findUserByIdentity, findUserById, createUser, getUserIdentities, toUserProfile } from '../services/user.js';
-import type { SessionResponse, OtpStartResponse } from '../types/auth.js';
+import type { SessionResponse, OtpStartResponse, User } from '../types/auth.js';
 import { authenticate } from '../middleware/auth.js';
 
 export async function authRoutes(app: FastifyInstance) {
+  async function issueSession(channel: 'email' | 'phone' | 'apple', identifier: string, userAgent?: string): Promise<SessionResponse> {
+    const existingUser = await findUserByIdentity(channel, identifier);
+    let user: User | null = existingUser;
+    if (!existingUser) {
+      const created = await createUser(channel, identifier);
+      user = await findUserById(created.id);
+    }
+    if (!user) throw new Error('Failed to load user');
+    const identities = await getUserIdentities(user.id);
+    const session = await createSession(user.id, userAgent);
+    return { accessToken: session.token, tokenType: 'Bearer', expiresInSeconds: session.expiresInSeconds, user: toUserProfile(user, identities) };
+  }
+
+  app.post<{ Body: { phone: string } }>('/auth/phone/start', async (request, reply) => {
+    const phone = request.body?.phone?.trim();
+    if (!phone || !/^\+[1-9]\d{7,14}$/.test(phone)) return reply.code(400).send({ error: 'Bad Request', message: 'Phone must be in E.164 format, for example +15551234567' });
+    try {
+      const result = await startPhoneOtp(phone);
+      const response: OtpStartResponse = { status: result.devHint ? 'mock' : 'sent', channel: 'sms', expiresInSeconds: result.expiresInSeconds, ...(result.devHint && { devHint: result.devHint }) };
+      return reply.send(response);
+    } catch (error) { request.log.error(error, 'Failed to start phone OTP'); return reply.code(500).send({ error: 'Internal Server Error', message: 'Failed to send verification code' }); }
+  });
+
+  app.post<{ Body: { phone: string; code: string } }>('/auth/phone/verify', async (request, reply) => {
+    const phone = request.body?.phone?.trim(); const code = request.body?.code;
+    if (!phone || !code) return reply.code(400).send({ error: 'Bad Request', message: 'Phone and code are required' });
+    try {
+      if (!await verifyOtp('phone', phone, code)) return reply.code(401).send({ error: 'Unauthorized', message: 'Invalid or expired verification code' });
+      return reply.send(await issueSession('phone', phone, request.headers['user-agent']));
+    } catch (error) { request.log.error(error, 'Failed to verify phone OTP'); return reply.code(500).send({ error: 'Internal Server Error', message: 'Failed to verify code' }); }
+  });
+
+  app.post<{ Body: { identityToken: string; fullName?: string } }>('/auth/apple', async (request, reply) => {
+    const identityToken = request.body?.identityToken;
+    if (!identityToken) return reply.code(401).send({ error: 'Unauthorized', message: 'Apple identity token is required' });
+    // Real Apple JWT verification requires configured Apple keys; M1 accepts explicit mock identities only.
+    if (config.auth.mode !== 'mock' || !identityToken.startsWith('mock-apple-')) return reply.code(401).send({ error: 'Unauthorized', message: 'Apple sign-in is not configured' });
+    try { return reply.send(await issueSession('apple', identityToken, request.headers['user-agent'])); }
+    catch (error) { request.log.error(error, 'Failed Apple sign-in'); return reply.code(500).send({ error: 'Internal Server Error', message: 'Failed to sign in with Apple' }); }
+  });
   /**
    * POST /v1/auth/email/start
    * Start email OTP or magic link flow

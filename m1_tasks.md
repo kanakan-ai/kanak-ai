@@ -161,9 +161,10 @@
 
 ---
 
-### ⬜ M1-T5: Phone OTP & Apple auth (API + Web UI)
+### ✅ M1-T5: Phone OTP & Apple auth (API + Web UI)
 
-**Status**: Not started  
+**Status**: Complete  
+**Completed**: 2026-08-12  
 **Depends on**: M1-T2
 
 **Backend deliverables**:
@@ -186,7 +187,7 @@
 - Integration tests pass
 - Human verification script complete
 
-**Verification**: `docs/M1-T5-verification.md` (to be created)
+**Verification**: [docs/M1-T5-verification.md](docs/M1-T5-verification.md)
 
 ---
 
@@ -297,4 +298,4 @@ Per `mvp-scope-and-milestones.md`:
 ---
 
 **Last updated**: 2026-08-12  
-**Current task**: M1-T4 (Complete) | Next: M1-T5 (Phone OTP & Apple auth)
+**Current task**: M1-T5 (Complete) | Next: M1-T6 (Analytics events + Ops dashboard)
