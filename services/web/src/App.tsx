@@ -56,6 +56,7 @@ function AppContent() {
     setSelectedDocumentId(null);
     setCurrentScreen(screen);
   };
+
   let content;
   if (currentScreen === 'upload') content = <Upload onUploadComplete={() => navigate('vault')} onBack={() => navigate('vault')} />;
   else if (currentScreen === 'document-detail' && selectedDocumentId) content = <DocumentDetail documentId={selectedDocumentId} onBack={() => navigate('vault')} />;

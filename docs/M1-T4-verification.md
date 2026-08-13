@@ -35,12 +35,8 @@
    - Enter code `000000` (mock mode)
    - Click "Verify" → should authenticate successfully
 3. **Verify**: You land on the Vault screen after sign-in.
-4. **Verify**: Empty state shows:
-   - Large document icon (📄)
-   - "No documents yet" text
-   - "Upload your first document to get started" subtext
-   - Teal "Upload a document" button
-5. **Verify**: The default appearance is dark, with a clear Kanak AI brand and **Vault** as the page title.
+4. **Verify**: With zero documents, the Vault shows the "Get started" first-run explainer (see `docs/M1-T7-verification.md` for its full content) with a single teal "Choose type & upload" CTA — not a bare empty-state box.
+5. **Verify**: The default appearance is dark, with a clear Kanak AI brand.
 6. **Desktop check (browser width ≥900px)**: A persistent left navigation is visible with Kanak AI, Vault, unavailable Ask/Settings items, and the signed-in email plus **Sign out**. The content is a desktop-width layout, not a stretched phone screen.
 7. **Narrow-screen check (browser width <760px)**: The compact bottom navigation is visible and usable; the desktop sidebar is not shown.
 

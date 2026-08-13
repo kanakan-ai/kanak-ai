@@ -225,25 +225,28 @@
 
 ---
 
-### ⬜ M1-T7: First-run experience (Web UI)
+### ✅ M1-T7: First-run experience (Web UI)
 
-**Status**: Not started  
+**Status**: Complete
+**Completed**: 2026-08-13
 **Depends on**: M1-T2, M1-T3, M1-T4
 
 **Frontend deliverables**:
-- Welcome/onboarding screen for new users
-- Product value proposition
-- Key features explainer
-- "Get started" CTA flow
-- Skip/dismiss option with preference storage
+- ✅ Welcome/onboarding screen for new users (renders inside the authenticated shell, per mockup 02)
+- ✅ Product value proposition
+- ✅ Key features explainer ("How upload works", 3 steps)
+- ✅ "Get started" CTA flow (→ Upload)
+- ✅ Skip/dismiss option with preference storage (localStorage per user id; server-side deferred until `PATCH /v1/me` exists)
 
 **Exit criteria**:
-- New users see first-run explainer
-- Returning users skip to main app
-- Integration tests pass
-- Human verification script complete
+- ✅ New users see first-run explainer
+- ✅ Returning users skip to main app
+- ✅ Integration tests pass (2 new tests, 57 total)
+- ✅ Human verification script complete
 
-**Verification**: `docs/M1-T7-verification.md` (to be created)
+**Note**: Purely frontend — no API/DB changes. Onboarding dismissal fires `onboarding_completed` / `onboarding_skipped` via the M1-T6 events pipeline (metrics.md Journey A step A1).
+
+**Verification**: [docs/M1-T7-verification.md](docs/M1-T7-verification.md)
 
 ---
 
@@ -302,4 +305,4 @@ Per `mvp-scope-and-milestones.md`:
 ---
 
 **Last updated**: 2026-08-13
-**Current task**: M1-T6 (Complete) | Next: M1-T7 (First-run experience)
+**Current task**: M1-T7 (Complete) | Next: M1-T8 (Documentation & E2E verification)
