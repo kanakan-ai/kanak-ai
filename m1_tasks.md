@@ -250,27 +250,32 @@
 
 ---
 
-### ⬜ M1-T8: Documentation & E2E verification
+### ✅ M1-T8: Documentation & E2E verification
 
-**Status**: Not started  
+**Status**: Complete
+**Completed**: 2026-08-13
 **Depends on**: M1-T2, M1-T3, M1-T4, M1-T5, M1-T6, M1-T7
 
 **Deliverables**:
-- Update README with complete M1 user journey
-- End-to-end human verification script
-- Integration test coverage review
-- Portability verification (fresh machine test)
-- Architecture documentation updates
-- API documentation review
+- ✅ README rewritten with the complete M1 user journey, config, and troubleshooting
+- ✅ End-to-end human verification script (`docs/M1-E2E-verification.md`) covering M1-T1–T7 as one walkthrough
+- ✅ Integration test coverage review (per-file summary + known, intentional gaps)
+- ✅ Portability verification: fresh clone into an isolated directory with renamed containers and non-default ports, full stack up, all tests green, then torn down
+- ✅ Architecture documentation review (`high-level-architecture.md` §11.5/§14 checked against implementation — no drift found)
+- ✅ API documentation review (`openapi.yaml` checked against implemented routes — one known gap flagged: `GET /v1/admin/ops-summary` from M1-T6 isn't in the spec; not fixed here since `agents.md` restricts this repo's agents to `kanak-ai`, not `kanak-ai-specs`)
+
+**Bugs found and fixed by the portability test**:
+- `docker-compose.yml`: API container's internal `PORT` was wrongly tied to the host-side `API_PORT` override, breaking its own healthcheck (and the whole stack) whenever `API_PORT` was customized
+- `tests/integration/m1-t1.test.ts`: used a different `API_BASE_URL` convention than the rest of the suite, so one env override couldn't point every test file at a custom-port stack
 
 **Exit criteria**:
-- M1 fully documented
-- E2E verification passes
-- Another developer can run stack in < 15 minutes
-- All integration tests pass
-- M1 exit criteria met
+- ✅ M1 fully documented
+- ✅ E2E verification passes
+- ✅ Another developer can run the stack in well under 15 minutes (measured: ~72s cold build + up, ~41s for the full 56-test suite)
+- ✅ All integration tests pass (56/56)
+- ✅ M1 exit criteria met
 
-**Verification**: `docs/M1-E2E-verification.md` (to be created)
+**Verification**: [docs/M1-E2E-verification.md](docs/M1-E2E-verification.md)
 
 ---
 
@@ -284,7 +289,7 @@ Per `mvp-scope-and-milestones.md`:
 - [x] User can see a placeholder vault item with stub extracted fields
 - [x] Auth/upload events land in the event store
 - [x] Basic ops dashboard shows API health and events
-- [ ] README explains how to bring stack up locally with no cloud account (tracked in M1-T8)
+- [x] README explains how to bring stack up locally with no cloud account
 
 **Not required in M1:**
 - Mobile (React Native) project
@@ -305,4 +310,4 @@ Per `mvp-scope-and-milestones.md`:
 ---
 
 **Last updated**: 2026-08-13
-**Current task**: M1-T7 (Complete) | Next: M1-T8 (Documentation & E2E verification)
+**Current task**: M1-T8 (Complete) | **M1 milestone complete.** Next: M2 — Real Parse & Structured Vault (not started; awaiting approval)
