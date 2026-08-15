@@ -38,12 +38,27 @@
 
 ---
 
-### ⬜ M2-T2: Real phone OTP (AWS SNS)
+### 🟡 M2-T2: Real phone OTP (AWS SNS)
 
-**Status**: Not started
+**Status**: Code complete, mock regression verified — live SMS delivery pending your AWS account + phone number
 **Depends on**: M1-T5
 
-Live SMS adapter via AWS SNS `Publish`, reusing the AWS credentials from M2-T1.
+**Backend deliverables**:
+- ✅ `SmsProvider` interface (`services/api/src/sms/types.ts`) — exact structural mirror of `EmailProvider` from M2-T1
+- ✅ `console` adapter (unchanged M1 behavior — logs instead of sending)
+- ✅ `sns` adapter (AWS SNS `Publish` via `@aws-sdk/client-sns`; reuses the same AWS credential env vars as M2-T1's SES adapter)
+- ✅ Provider registry/factory: `AUTH_MODE=mock` always uses `console` regardless of `SMS_PROVIDER`; `AUTH_MODE=live` uses `SMS_PROVIDER` (`console` default, `sns` for real delivery)
+- ✅ `config.sms.provider` added, mirroring `config.email.provider`
+- ✅ `services/auth.ts`'s `startPhoneOtp` refactored to send through the provider instead of an inline `console.log`
+- ✅ `SmsDeliveryError` — provider-agnostic failure classification (`recipient_rejected`, `credentials_invalid`, `unknown`), same pattern as `EmailDeliveryError`; route surfaces a generic message plus a reason-specific dev-only hint outside `NODE_ENV=production`
+
+**Exit criteria**:
+- ✅ Mock-mode phone OTP behavior unchanged (regression-verified: full M1 integration suite, 56/56, still passing, including `m1-t5-auth.test.ts`)
+- ✅ Unit tests prove the SNS adapter builds the correct request, classifies errors correctly, and the factory picks the right provider (13 tests, mocked AWS SDK — no real network/cost)
+- ⬜ **Live delivery verified end-to-end with real AWS SNS**: real SMS received with a working code, sign-in completed — needs your AWS account + a real phone number
+- ✅ New opt-in `tests/integration/m2-t2-sms-live.test.ts` (2 tests) — skips cleanly without live credentials
+
+**Verification**: [docs/M2-T2-verification.md](docs/M2-T2-verification.md)
 
 ---
 
@@ -146,4 +161,4 @@ Per `design/m2-capabilities.md` §9:
 ---
 
 **Last updated**: 2026-08-15
-**Current task**: M2-T1 (Complete) | Next: M2-T2 (Real phone OTP via AWS SNS) — awaiting approval
+**Current task**: M2-T2 (Code complete, mock regression verified — live SMS delivery needs your AWS account + phone number to confirm)

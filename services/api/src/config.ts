@@ -29,6 +29,9 @@ export interface Config {
     provider: 'console' | 'ses';
     fromAddress: string;
   };
+  sms: {
+    provider: 'console' | 'sns';
+  };
   adminEmails: string[];
 }
 
@@ -64,6 +67,9 @@ export const config: Config = {
   email: {
     provider: getEnv('EMAIL_PROVIDER', 'console') as 'console' | 'ses',
     fromAddress: getEnv('SES_FROM_EMAIL', ''),
+  },
+  sms: {
+    provider: getEnv('SMS_PROVIDER', 'console') as 'console' | 'sns',
   },
   // M1-T6: emails in this list get role='admin' on first sign-in, for local admin ops dashboard access.
   // Admin console must never be linked from customer UI (STEERING.md rule 7).

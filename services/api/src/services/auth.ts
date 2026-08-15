@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import { query } from '../lib/db.js';
 import { config } from '../config.js';
 import { getEmailProvider } from '../email/index.js';
+import { getSmsProvider } from '../sms/index.js';
 import type { OtpChallenge, IdentityChannel } from '../types/auth.js';
 
 const OTP_EXPIRY_SECONDS = 300; // 5 minutes
@@ -149,7 +150,19 @@ export async function verifyEmailOtp(
   return true;
 }
 
-/** Start phone OTP flow. SMS delivery remains a local mock in M1. */
+/**
+ * Send the OTP SMS via the configured provider
+ * (console in AUTH_MODE=mock; AWS SNS in AUTH_MODE=live — see services/api/src/sms/).
+ */
+async function sendOtpSms(phone: string, code: string): Promise<void> {
+  const provider = getSmsProvider();
+  await provider.send({
+    to: phone,
+    body: `Your Kanak AI verification code is: ${code}\n\nThis code expires in 5 minutes.`,
+  });
+}
+
+/** Start phone OTP flow. */
 export async function startPhoneOtp(phone: string): Promise<{ expiresInSeconds: number; devHint?: string }> {
   const code = config.auth.mode === 'mock' ? '000000' : generateOtpCode();
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000);
@@ -157,8 +170,10 @@ export async function startPhoneOtp(phone: string): Promise<{ expiresInSeconds: 
     `INSERT INTO otp_challenges (channel, identifier, code_hash, expires_at, max_attempts) VALUES ($1, $2, $3, $4, $5)`,
     ['phone', phone, await hashCode(code), expiresAt, MAX_ATTEMPTS]
   );
+
+  await sendOtpSms(phone, code);
+
   if (config.auth.mode === 'mock') {
-    console.log(`MOCK SMS (AUTH_MODE=mock) to ${phone}: Kanak AI code ${code}`);
     return { expiresInSeconds: OTP_EXPIRY_SECONDS, devHint: 'Use code 000000' };
   }
   return { expiresInSeconds: OTP_EXPIRY_SECONDS };

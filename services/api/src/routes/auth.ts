@@ -12,6 +12,7 @@ import type { SessionResponse, OtpStartResponse, User } from '../types/auth.js';
 import { authenticate } from '../middleware/auth.js';
 import { recordEvent } from '../services/analytics.js';
 import { EmailDeliveryError } from '../email/index.js';
+import { SmsDeliveryError } from '../sms/index.js';
 
 /** Dev-only, reason-specific detail appended to the generic email-failure message (never in production). */
 function emailDevHint(error: unknown): string {
@@ -21,6 +22,19 @@ function emailDevHint(error: unknown): string {
       return ' (dev hint: the email provider rejected this specific recipient — if using AWS SES, this usually means the account is still in sandbox mode and this address is not verified; see docs/M2-T1-verification.md.)';
     case 'credentials_invalid':
       return ' (dev hint: the email provider rejected the configured AWS credentials — they may be expired or invalid; check AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKEN in .env.)';
+    default:
+      return '';
+  }
+}
+
+/** Dev-only, reason-specific detail appended to the generic SMS-failure message (never in production). */
+function smsDevHint(error: unknown): string {
+  if (config.env === 'production' || !(error instanceof SmsDeliveryError)) return '';
+  switch (error.reason) {
+    case 'recipient_rejected':
+      return ' (dev hint: the SMS provider rejected this specific number — if using AWS SNS, this usually means the account is still in the SMS spending-limit sandbox and this number is not verified, or the number opted out; see docs/M2-T2-verification.md.)';
+    case 'credentials_invalid':
+      return ' (dev hint: the SMS provider rejected the configured AWS credentials — they may be expired or invalid; check AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKEN in .env.)';
     default:
       return '';
   }
@@ -48,7 +62,7 @@ export async function authRoutes(app: FastifyInstance) {
       const result = await startPhoneOtp(phone);
       const response: OtpStartResponse = { status: result.devHint ? 'mock' : 'sent', channel: 'sms', expiresInSeconds: result.expiresInSeconds, ...(result.devHint && { devHint: result.devHint }) };
       return reply.send(response);
-    } catch (error) { request.log.error(error, 'Failed to start phone OTP'); return reply.code(500).send({ error: 'Internal Server Error', message: 'Failed to send verification code' }); }
+    } catch (error) { request.log.error(error, 'Failed to start phone OTP'); return reply.code(500).send({ error: 'Internal Server Error', message: `Failed to send verification code${smsDevHint(error)}` }); }
   });
 
   app.post<{ Body: { phone: string; code: string } }>('/auth/phone/verify', async (request, reply) => {
