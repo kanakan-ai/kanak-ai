@@ -11,6 +11,20 @@ import { findUserByIdentity, findUserById, createUser, getUserIdentities, toUser
 import type { SessionResponse, OtpStartResponse, User } from '../types/auth.js';
 import { authenticate } from '../middleware/auth.js';
 import { recordEvent } from '../services/analytics.js';
+import { EmailDeliveryError } from '../email/index.js';
+
+/** Dev-only, reason-specific detail appended to the generic email-failure message (never in production). */
+function emailDevHint(error: unknown): string {
+  if (config.env === 'production' || !(error instanceof EmailDeliveryError)) return '';
+  switch (error.reason) {
+    case 'recipient_rejected':
+      return ' (dev hint: the email provider rejected this specific recipient — if using AWS SES, this usually means the account is still in sandbox mode and this address is not verified; see docs/M2-T1-verification.md.)';
+    case 'credentials_invalid':
+      return ' (dev hint: the email provider rejected the configured AWS credentials — they may be expired or invalid; check AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKEN in .env.)';
+    default:
+      return '';
+  }
+}
 
 export async function authRoutes(app: FastifyInstance) {
   async function issueSession(channel: 'email' | 'phone' | 'apple', identifier: string, userAgent?: string): Promise<SessionResponse> {
@@ -87,9 +101,14 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error) {
       request.log.error(error, 'Failed to start email OTP');
+      // Generic message for all callers (never leak vendor/infra detail to a real user —
+      // this genuinely could just mean the address is unreachable). A dev-only hint is
+      // appended outside production so local testing doesn't have to read container logs
+      // to learn "this is SES sandbox mode" vs "the AWS credentials expired," per
+      // docs/M2-T1-verification.md.
       return reply.code(500).send({
         error: 'Internal Server Error',
-        message: 'Failed to send verification email',
+        message: `Failed to send verification email${emailDevHint(error)}`,
       });
     }
   });

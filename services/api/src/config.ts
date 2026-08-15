@@ -21,8 +21,13 @@ export interface Config {
     bucket: string;
   };
   auth: {
-    mode: 'mock' | 'real';
+    // 'live' matches design/TECH_STACK.md and design/m2-capabilities.md's AUTH_MODE contract.
+    mode: 'mock' | 'live';
     sessionSecret: string;
+  };
+  email: {
+    provider: 'console' | 'ses';
+    fromAddress: string;
   };
   adminEmails: string[];
 }
@@ -53,8 +58,12 @@ export const config: Config = {
     bucket: getEnv('MINIO_BUCKET', 'kanak-documents'),
   },
   auth: {
-    mode: getEnv('AUTH_MODE', 'mock') as 'mock' | 'real',
+    mode: getEnv('AUTH_MODE', 'mock') as 'mock' | 'live',
     sessionSecret: getEnv('SESSION_SECRET'),
+  },
+  email: {
+    provider: getEnv('EMAIL_PROVIDER', 'console') as 'console' | 'ses',
+    fromAddress: getEnv('SES_FROM_EMAIL', ''),
   },
   // M1-T6: emails in this list get role='admin' on first sign-in, for local admin ops dashboard access.
   // Admin console must never be linked from customer UI (STEERING.md rule 7).

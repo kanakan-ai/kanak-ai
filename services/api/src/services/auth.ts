@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { query } from '../lib/db.js';
 import { config } from '../config.js';
+import { getEmailProvider } from '../email/index.js';
 import type { OtpChallenge, IdentityChannel } from '../types/auth.js';
 
 const OTP_EXPIRY_SECONDS = 300; // 5 minutes
@@ -35,36 +36,23 @@ export async function hashCode(code: string): Promise<string> {
 }
 
 /**
- * Mock email delivery (M1 only - logs to console)
+ * Send the OTP/magic-link email via the configured provider
+ * (console in AUTH_MODE=mock; AWS SES in AUTH_MODE=live — see services/api/src/email/).
  */
-export function sendEmailMock(email: string, code: string, isMagicLink: boolean): void {
+async function sendOtpEmail(email: string, code: string, isMagicLink: boolean): Promise<void> {
+  const provider = getEmailProvider();
   if (isMagicLink) {
-    console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📧 MOCK EMAIL (AUTH_MODE=mock)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-To: ${email}
-Subject: Sign in to Kanak AI
-
-Click the link below to sign in:
-http://localhost:3000/auth/verify?token=${code}
-
-This link expires in 15 minutes.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `);
+    await provider.send({
+      to: email,
+      subject: 'Sign in to Kanak AI',
+      text: `Click the link below to sign in:\nhttp://localhost:3000/auth/verify?token=${code}\n\nThis link expires in 15 minutes.`,
+    });
   } else {
-    console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📧 MOCK EMAIL (AUTH_MODE=mock)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-To: ${email}
-Subject: Your Kanak AI verification code
-
-Your verification code is: ${code}
-
-This code expires in 5 minutes.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `);
+    await provider.send({
+      to: email,
+      subject: 'Your Kanak AI verification code',
+      text: `Your verification code is: ${code}\n\nThis code expires in 5 minutes.`,
+    });
   }
 }
 
@@ -95,17 +83,14 @@ export async function startEmailOtp(
     ['email', email.toLowerCase(), codeHash, expiresAt, MAX_ATTEMPTS]
   );
 
-  // Send email (mock in M1)
+  await sendOtpEmail(email, code, preferMagicLink);
+
   if (config.auth.mode === 'mock') {
-    sendEmailMock(email, code, preferMagicLink);
     return {
       expiresInSeconds,
       devHint: preferMagicLink ? `Use magic token: ${code}` : 'Use code 000000',
     };
   }
-
-  // In real mode, would call email service here
-  sendEmailMock(email, code, preferMagicLink);
 
   return { expiresInSeconds };
 }

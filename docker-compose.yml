@@ -88,6 +88,14 @@ services:
       AUTH_MODE: ${AUTH_MODE:-mock}
       SESSION_SECRET: ${SESSION_SECRET:-dev_session_secret_change_in_production}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # Only needed for temporary/assumed-role credentials (aws sts assume-role); leave
+      # unset when using a long-lived IAM user access key.
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
