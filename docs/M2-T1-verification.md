@@ -46,11 +46,13 @@ This task has **two** parts: a regression check (no AWS needed) and a live-deliv
 
 **Fail if**: no email arrives and no clear SES error appears in `docker-compose logs api`; the code in the email doesn't match what unlocks sign-in; a `devHint` still appears in live mode.
 
-**Known non-bug failure modes** (both surface as a generic message to the API caller, plus a specific dev-only hint appended outside `NODE_ENV=production` — check `docker-compose logs api` for the full underlying AWS error either way):
-- **Recipient rejected** (`AccessDenied` or `MessageRejected` from SES) — your SES account is still in sandbox mode and this recipient isn't verified, or your IAM policy's `Resource` ARN doesn't match the sender identity (region and address must match exactly — a typo or wrong-region ARN in the policy produces this same error). Not a code defect.
+**Known non-bug failure modes** — both surface as the same generic, customer-safe message to the API caller in *every* environment (never AWS/vendor detail, even locally — check `docker-compose logs api` for the full underlying AWS error, logged server-side via `request.log.error`, never returned in the response):
+- **Recipient rejected** (`AccessDenied` or `MessageRejected` from SES) — your SES account is still in sandbox mode and this recipient isn't verified, your IAM policy's `Resource` ARN doesn't match the sender identity (region and address must match exactly — a typo or wrong-region ARN in the policy produces this same error), **or the recipient address itself has a typo** (e.g. `hotmail.con`) — SES reports all three identically. `POST /auth/email/start` now runs a format + common-typo check (`services/api/src/lib/email-validation.ts`) before ever attempting delivery, which catches the typo case immediately with a specific "did you mean...?" message. Not a code defect.
 - **Credentials invalid** (`ExpiredToken`, `InvalidClientTokenId`, etc.) — your AWS credentials (especially `assume-role` session tokens) have expired or are malformed. Generate fresh ones and update `.env`. Not a code defect.
 
-Both were hit for real during verification (a policy region/typo mismatch, and a token that expired mid-session) and are what motivated the dev-hint messaging below.
+Both were hit for real during verification (a policy region/typo mismatch, a token that expired mid-session, and later a typo'd recipient address) — the third is what motivated adding the pre-delivery format/typo check.
+
+**Design note**: an earlier version of this feature exposed a dev-only, vendor-specific hint (e.g. "this usually means SES sandbox mode") outside `NODE_ENV=production`, to save a trip to the logs while testing locally. This was removed — the API now returns the exact same safe message in every environment (`docker-compose logs api` is the only place vendor/error detail ever appears), so local testing sees precisely what a real customer would see.
 
 ---
 

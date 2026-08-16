@@ -13,31 +13,30 @@ import { authenticate } from '../middleware/auth.js';
 import { recordEvent } from '../services/analytics.js';
 import { EmailDeliveryError } from '../email/index.js';
 import { SmsDeliveryError } from '../sms/index.js';
+import { validateEmailFormat } from '../lib/email-validation.js';
 
-/** Dev-only, reason-specific detail appended to the generic email-failure message (never in production). */
-function emailDevHint(error: unknown): string {
-  if (config.env === 'production' || !(error instanceof EmailDeliveryError)) return '';
-  switch (error.reason) {
-    case 'recipient_rejected':
-      return ' (dev hint: the email provider rejected this specific recipient — if using AWS SES, this usually means the account is still in sandbox mode and this address is not verified; see docs/M2-T1-verification.md.)';
-    case 'credentials_invalid':
-      return ' (dev hint: the email provider rejected the configured AWS credentials — they may be expired or invalid; check AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKEN in .env.)';
-    default:
-      return '';
+/**
+ * Customer-facing hint, shown in every environment — no vendor/infra details, ever.
+ * A rejected recipient is, from a real customer's point of view, most often their
+ * own typo (see the recipient_rejected case hit during M2 verification: a mistyped
+ * TLD that AWS SES itself reports identically to "account still in sandbox"). The
+ * full underlying reason (vendor, error name, sandbox vs. credentials) is logged via
+ * request.log.error below — check `docker-compose logs api` for that detail; it is
+ * intentionally never returned to the caller, in dev or prod.
+ */
+function emailUserHint(error: unknown): string {
+  if (error instanceof EmailDeliveryError && error.reason === 'recipient_rejected') {
+    return ' Double-check that the email address is correct, then try again.';
   }
+  return '';
 }
 
-/** Dev-only, reason-specific detail appended to the generic SMS-failure message (never in production). */
-function smsDevHint(error: unknown): string {
-  if (config.env === 'production' || !(error instanceof SmsDeliveryError)) return '';
-  switch (error.reason) {
-    case 'recipient_rejected':
-      return ' (dev hint: the SMS provider rejected this specific number — if using AWS SNS, this usually means the account is still in the SMS spending-limit sandbox and this number is not verified, or the number opted out; see docs/M2-T2-verification.md.)';
-    case 'credentials_invalid':
-      return ' (dev hint: the SMS provider rejected the configured AWS credentials — they may be expired or invalid; check AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKEN in .env.)';
-    default:
-      return '';
+/** Customer-facing hint, shown in every environment — no vendor/infra details, ever. */
+function smsUserHint(error: unknown): string {
+  if (error instanceof SmsDeliveryError && error.reason === 'recipient_rejected') {
+    return ' Double-check that the phone number is correct, then try again.';
   }
+  return '';
 }
 
 export async function authRoutes(app: FastifyInstance) {
@@ -62,7 +61,7 @@ export async function authRoutes(app: FastifyInstance) {
       const result = await startPhoneOtp(phone);
       const response: OtpStartResponse = { status: result.devHint ? 'mock' : 'sent', channel: 'sms', expiresInSeconds: result.expiresInSeconds, ...(result.devHint && { devHint: result.devHint }) };
       return reply.send(response);
-    } catch (error) { request.log.error(error, 'Failed to start phone OTP'); return reply.code(500).send({ error: 'Internal Server Error', message: `Failed to send verification code${smsDevHint(error)}` }); }
+    } catch (error) { request.log.error(error, 'Failed to start phone OTP'); return reply.code(500).send({ error: 'Internal Server Error', message: `Failed to send verification code.${smsUserHint(error)}` }); }
   });
 
   app.post<{ Body: { phone: string; code: string } }>('/auth/phone/verify', async (request, reply) => {
@@ -94,11 +93,15 @@ export async function authRoutes(app: FastifyInstance) {
   }>('/auth/email/start', async (request, reply) => {
     const { email, preferMagicLink = false } = request.body;
 
-    // Validate email
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    // Format + common-typo check, before ever attempting delivery — catches the class of
+    // mistake (e.g. "hotmail.con") that AWS SES itself can't distinguish from "recipient
+    // not verified" (see docs/M2-T1-verification.md).
+    const emailCheck = validateEmailFormat(email);
+    if (!emailCheck.valid) {
       return reply.code(400).send({
         error: 'Bad Request',
-        message: 'Invalid email address',
+        message: emailCheck.reason,
+        ...(emailCheck.suggestion && { suggestion: emailCheck.suggestion }),
       });
     }
 
@@ -122,7 +125,7 @@ export async function authRoutes(app: FastifyInstance) {
       // docs/M2-T1-verification.md.
       return reply.code(500).send({
         error: 'Internal Server Error',
-        message: `Failed to send verification email${emailDevHint(error)}`,
+        message: `Failed to send verification email.${emailUserHint(error)}`,
       });
     }
   });

@@ -47,10 +47,12 @@ Automated: the full mock-mode integration suite (`cd tests/integration && npm te
 
 **Fail if**: no SMS arrives and no clear SNS error appears in `docker-compose logs api`; the code in the SMS doesn't match what unlocks sign-in; a `devHint` still appears in live mode.
 
-**Known non-bug failure modes** (both surface as a generic message to the API caller, plus a specific dev-only hint appended outside `NODE_ENV=production` — check `docker-compose logs api` for the full underlying AWS error either way):
+**Known non-bug failure modes** — all surface as the same generic, customer-safe message to the API caller in *every* environment (never vendor detail, even locally — check `docker-compose logs api` for the full underlying AWS error, logged server-side via `request.log.error`, never returned in the response):
 - **Recipient rejected** (`AuthorizationErrorException` or `OptedOutException` from SNS) — your account is still in the SMS sandbox and this number isn't verified there, or the number has opted out of SMS from your account. Not a code defect.
 - **Credentials invalid** (`ExpiredToken`, `InvalidClientTokenId`, etc.) — same classification as M2-T1's SES adapter; your AWS credentials have expired or are malformed. Generate fresh ones and update `.env`. Not a code defect.
 - **Silent non-delivery with a successful API response** (hit for real during verification, 2026-08-15) — `PublishCommand` returned `200`/a real `MessageId` (~378ms round-trip, confirming the live path was taken, not console mock), but no SMS arrived. Root cause: the AWS account was still on the Free/unactivated plan (payment + identity verification incomplete), which blocks registering a 10DLC origination identity — required for reliable SNS SMS delivery to US numbers. AWS accepts the `Publish` call regardless and the carrier silently drops the message; **SNS does not surface this as an API error**, so `SmsDeliveryError` cannot classify it — this failure mode is invisible to the code by design. Confirmed via the AWS "Complete your account setup" banner when attempting to register an origination identity. Resolution is entirely account-side: complete AWS account activation, then register an origination number/campaign (10DLC), and retest. Not a code defect.
+
+**Design note**: an earlier version of this feature exposed a dev-only, vendor-specific hint outside `NODE_ENV=production`. This was removed — the API now returns the exact same safe message in every environment, so local testing sees precisely what a real customer would see; `docker-compose logs api` is the only place vendor/error detail ever appears.
 
 ---
 
