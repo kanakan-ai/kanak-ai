@@ -110,7 +110,13 @@ Structural (magic-bytes) PDF validation, independent of client-supplied Content-
 **Status**: Not started
 **Depends on**: M1-T4
 
-Replaces the M1 stub worker: `ParseProvider` interface + registry, atomic per-type modules (auto/home/life/warranty/receipt) per `design/schemas/*` and `document-type-modules.md`, `mock` adapter, writes `parse_runs`.
+Replaces the M1 stub worker: `ParseProvider` interface + registry, atomic per-type modules per `design/schemas/*` and `document-type-modules.md`, `mock` adapter, writes `parse_runs`.
+
+**9 document types now have dedicated modules** (expanded 2026-08-16, spec updated by you — `schema.sql`, `openapi.yaml`, `design/schemas/*`, `parse-prompts.md`, `document-type-modules.md`): `auto_policy`, `home_policy`, `life_insurance`, `warranty`, `receipt` (original 5) + `umbrella_policy`, `landlord_policy`, `renters_policy`, `long_term_care` (new). `tax`/`other` still share the generic fallback path (no dedicated schema, per `parse-prompts.md` §4.10) — unchanged.
+
+Also in scope now: extend `services/api/src/services/document-validation.ts`'s M2-T4 type-match keyword lists to cover the 4 new types (app-repo work, no spec dependency beyond the enum existing) — e.g. `umbrella_policy: ['umbrella', 'excess liability']`, `landlord_policy: ['landlord', 'rental dwelling', 'loss of rents']`, `renters_policy: ['renters insurance', 'tenant', 'ho-4']`, `long_term_care: ['long-term care', 'long term care', 'ltc', 'daily benefit']`.
+
+Note: `landlord_policy` carries a spec-level entitlement note (`design/schemas/README.md`) — extraction is supported for all plans, but the **product plan** may restrict rental/landlord portfolios to Platinum (M5). Not an M2-T5a concern (that's an access-control/plan-matrix decision for later), but worth remembering when this surfaces in the UI.
 
 ---
 
