@@ -86,11 +86,17 @@ export async function validateSession(token: string): Promise<string | null> {
  * Revoke a session (logout)
  */
 export async function revokeSession(token: string): Promise<boolean> {
+  // ORDER BY created_at DESC matches validateSession's ordering: the session being logged
+  // out of is virtually always the most recently created one, so checking newest-first keeps
+  // this fast regardless of how many older sessions have accumulated (each check is a
+  // deliberately-slow bcrypt.compare — without this ordering, a large or old-heavy sessions
+  // table forces scanning oldest-first, which can take a very long time).
   const result = await query<Session>(
     `
     SELECT * FROM sessions
     WHERE expires_at > NOW()
     AND revoked_at IS NULL
+    ORDER BY created_at DESC
     `
   );
 
