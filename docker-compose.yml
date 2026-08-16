@@ -91,6 +91,7 @@ services:
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
       SMS_PROVIDER: ${SMS_PROVIDER:-console}
+      DOCUMENT_RETENTION_DAYS: ${DOCUMENT_RETENTION_DAYS:-14}
       AWS_REGION: ${AWS_REGION:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -119,9 +120,11 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/v1}
+        VITE_DOCUMENT_RETENTION_DAYS: ${VITE_DOCUMENT_RETENTION_DAYS:-14}
     container_name: kanak-web
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/v1}
+      VITE_DOCUMENT_RETENTION_DAYS: ${VITE_DOCUMENT_RETENTION_DAYS:-14}
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:

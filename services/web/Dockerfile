@@ -13,6 +13,10 @@ COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8080/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Document retention window (must match the API's DOCUMENT_RETENTION_DAYS) — display-only.
+ARG VITE_DOCUMENT_RETENTION_DAYS=14
+ENV VITE_DOCUMENT_RETENTION_DAYS=$VITE_DOCUMENT_RETENTION_DAYS
+
 # Build production bundle (M1-T1: minimal app)
 RUN npm run build
 

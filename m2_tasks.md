@@ -71,12 +71,37 @@ M1's mock Apple sign-in stays in place. Revisit when Apple Developer credentials
 
 ---
 
-### ⬜ M2-T4: PDF/type validation
+### 🟡 M2-T4: PDF/type validation
 
-**Status**: Not started
+**Status**: Code complete, full regression passing — awaiting your manual verification
 **Depends on**: M1-T3
 
-Server-side check that the uploaded file matches the user-selected `documentType` (magic bytes/MIME + heuristic or model check); `needs_review`/`failed` messaging; `document_validation_passed`/`document_validation_failed` events.
+Structural (magic-bytes) PDF validation, independent of client-supplied Content-Type, **plus** a bare-minimum content-vs-type keyword heuristic (per-type keyword list matched against extracted PDF text — any single hit counts as a match; inconclusive cases always pass, never reject); `document_validation_passed`/`document_validation_failed` events. The full semantic check (real understanding of whether content matches type) stays deferred to M2-T5a's document-type module registry (`registry.get(documentType).validate()`) — this heuristic only catches obvious, unambiguous mismatches as a stopgap, and adds no type-specific conditionals to the shared route (the keyword list is data, dispatched through one generic function).
+
+**Redesigned twice after review feedback**:
+1. (storage cost + UX) a content mismatch no longer silently stores the file and flags it `needs_review` for later discovery — it blocks *before* any storage/DB write, returns `requiresConfirmation`, and the upload screen shows an inline "Upload anyway / choose a different type" prompt.
+2. (confirmed overrides still need review) a confirmed override no longer proceeds as clean `pending` data — it stays `needs_review` (visibly flagged, with a retention countdown), and is skipped by the parse worker so it never shows fabricated stub fields. Clearing the flag via actual field correction is explicitly deferred to **M2-T5c**; for now it clears only via manual delete or automatic retention.
+
+**Deliverables**:
+- ✅ `services/api/src/services/document-validation.ts` — `validatePdfStructure()` (magic bytes + non-empty), `extractPdfText()` (via `pdfjs-dist`), `checkDocumentTypeMatch()` (keyword heuristic)
+- ✅ `routes/documents.ts` — structural check hard-rejects (`400`, no row created) before storage; unconfirmed content mismatch also blocks before storage (`400 { requiresConfirmation: true, documentType, message }`, no row created); confirmed override (`confirmTypeOverride=true`) proceeds but as `status: 'needs_review'`; a match/inconclusive result proceeds as `pending`
+- ✅ Web UI (`Upload.tsx`) — inline warning + "Upload anyway"/"choose a different type" actions
+- ✅ Web UI (`DocumentDetail.tsx`, `Vault.tsx`) — `needs_review` badge/pill + live retention countdown ("Auto-removed in N days if unresolved")
+- ✅ Web UI (`DocumentDetail.tsx`) — "Remove document" delete action with inline confirm (backend `DELETE /v1/documents/:id` already existed, just had no UI trigger)
+- ✅ `services/api/src/services/document-retention.ts` (pure, unit-tested boundary math) + `services/api/src/workers/document-retention-worker.ts` (hourly sweep) — removes `needs_review`/`failed` documents past `config.documents.retentionDays` (`DOCUMENT_RETENTION_DAYS`, default 14); `services/document.ts` gained system-level `listStaleUnresolvedDocuments()`/`deleteDocumentById()` (unscoped by user — worker-only, never call from an HTTP route)
+- ✅ `document_validation_passed` (alongside existing `document_upload_accepted`) / `document_validation_failed` (structural failure, unconfirmed mismatch, **or** confirmed override) events, `document_type` property only
+
+**Exit criteria**:
+- ✅ Spoofed-`Content-Type` non-PDF upload rejected
+- ✅ Unconfirmed content mismatch blocks with a confirmable prompt — zero storage cost
+- ✅ Confirmed override still uploads but stays flagged `needs_review` — no fake stub data, visible warning + countdown
+- ✅ Match/inconclusive proceeds to `pending` as before
+- ✅ `needs_review`/`failed` documents past the retention window are automatically removed (storage + DB)
+- ✅ Unit tests (10 `document-validation.test.ts` + 7 `document-retention.test.ts`) + integration test cases in `m1-t3-upload.test.ts`
+- ✅ Full mock-mode regression: 60/60 passing
+- ⬜ **Your manual verification** — steps in the verification doc
+
+**Verification**: [docs/M2-T4-verification.md](docs/M2-T4-verification.md)
 
 ---
 
@@ -150,7 +175,7 @@ Per `design/m2-capabilities.md` §9:
 - [ ] Sign in with real email OTP on local stack (code complete; **your AWS credentials needed to verify real delivery**)
 - [ ] Sign in with real phone OTP on local stack (M2-T2)
 - [ ] Sign in with Apple on web — **deferred**, not blocking other M2 exit items
-- [ ] Upload PDF with selected type; mismatch surfaces validation feedback (M2-T4)
+- [ ] Upload PDF with selected type; mismatch surfaces validation feedback (M2-T4 code complete — structural + bare-minimum keyword check; awaiting your manual verification; full semantic check lands with M2-T5a's document-type module registry)
 - [ ] Parse writes structured fields per schema; detail + review UI works (M2-T5a–d)
 - [ ] Camera capture → upload → parse path works on web (M2-T6)
 - [ ] Full M2 event set in `analytics_events` after happy-path runs (M2-T8)
@@ -160,5 +185,5 @@ Per `design/m2-capabilities.md` §9:
 
 ---
 
-**Last updated**: 2026-08-15
-**Current task**: M2-T2 (Code complete, mock regression verified — live SMS delivery needs your AWS account + phone number to confirm)
+**Last updated**: 2026-08-16
+**Current task**: M2-T4 (code complete, 59/59 regression passing — awaiting your manual verification) | M2-T2 live SMS delivery still pending your AWS account activation (parked, not blocking)

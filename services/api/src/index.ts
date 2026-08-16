@@ -19,6 +19,7 @@ import { checkHealth } from './lib/db.js';
 import { recordLatency } from './lib/latency.js';
 import { initMinIO } from './services/storage.js';
 import { startStubParseWorker } from './workers/stub-parse-worker.js';
+import { startDocumentRetentionWorker } from './workers/document-retention-worker.js';
 
 const app = Fastify({
   logger: {
@@ -125,6 +126,10 @@ async function start() {
     // Start stub parse worker (M1-T4)
     startStubParseWorker();
     console.log('✓ Stub parse worker started');
+
+    // Start document retention worker (M2-T4)
+    startDocumentRetentionWorker();
+    console.log('✓ Document retention worker started');
 
     await app.listen({
       port: config.port,

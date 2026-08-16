@@ -48,6 +48,8 @@ export interface CreateDocumentParams {
   contentType?: string;
   byteSize: number;
   checksum?: string;
+  /** Defaults to 'pending'. M2-T4 passes 'needs_review' for a confirmed type-mismatch override. */
+  status?: DocumentStatus;
 }
 
 /**
@@ -73,7 +75,7 @@ export async function createDocument(
     [
       params.userId,
       params.documentType,
-      'pending', // Initial status
+      params.status ?? 'pending',
       params.source,
       params.storageKey,
       params.contentType || 'application/pdf',
@@ -161,5 +163,31 @@ export async function deleteDocument(
     [documentId, userId]
   );
 
+  return (result.rowCount || 0) > 0;
+}
+
+/**
+ * List 'needs_review'/'failed' documents whose updated_at is older than the
+ * retention window — candidates for the retention worker to remove. System-level
+ * (not user-scoped): only the background sweep calls this, never an HTTP route.
+ */
+export async function listStaleUnresolvedDocuments(retentionDays: number): Promise<Document[]> {
+  const result = await query<Document>(
+    `
+    SELECT * FROM documents
+    WHERE status IN ('needs_review', 'failed')
+    AND updated_at < NOW() - ($1 || ' days')::interval
+    `,
+    [retentionDays]
+  );
+  return result.rows;
+}
+
+/**
+ * Hard delete by id only, no user scoping — for the retention worker, which acts on
+ * behalf of the system, not a specific user's request. Never call from an HTTP route.
+ */
+export async function deleteDocumentById(documentId: string): Promise<boolean> {
+  const result = await query(`DELETE FROM documents WHERE id = $1`, [documentId]);
   return (result.rowCount || 0) > 0;
 }

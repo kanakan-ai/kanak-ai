@@ -32,6 +32,11 @@ export interface Config {
   sms: {
     provider: 'console' | 'sns';
   };
+  documents: {
+    // Days a 'needs_review' or 'failed' document may sit unresolved before the
+    // retention worker removes it (storage object + row). See services/document-retention.ts.
+    retentionDays: number;
+  };
   adminEmails: string[];
 }
 
@@ -70,6 +75,9 @@ export const config: Config = {
   },
   sms: {
     provider: getEnv('SMS_PROVIDER', 'console') as 'console' | 'sns',
+  },
+  documents: {
+    retentionDays: parseInt(getEnv('DOCUMENT_RETENTION_DAYS', '14'), 10),
   },
   // M1-T6: emails in this list get role='admin' on first sign-in, for local admin ops dashboard access.
   // Admin console must never be linked from customer UI (STEERING.md rule 7).

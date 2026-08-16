@@ -58,6 +58,35 @@ function createTestPDF(): Buffer {
   );
 }
 
+// Helper to build a PDF with real, extractable text content (correct xref offsets,
+// unlike createTestPDF() above which has no content stream at all) — needed to
+// exercise the M2-T4 type-match heuristic, which only judges when it can extract text.
+function createTestPDFWithText(text: string): Buffer {
+  const objs = [
+    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj',
+    '2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj',
+    '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj',
+    '4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj',
+  ];
+  const stream = `BT /F1 12 Tf 72 712 Td (${text}) Tj ET`;
+  objs.push(`5 0 obj<</Length ${stream.length}>>\nstream\n${stream}\nendstream\nendobj`);
+
+  const header = '%PDF-1.4\n';
+  let body = header;
+  const offsets: number[] = [0];
+  for (const obj of objs) {
+    offsets.push(body.length);
+    body += obj + '\n';
+  }
+  const xrefStart = body.length;
+  let xref = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= objs.length; i++) {
+    xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+  }
+  const trailer = `trailer<</Size ${objs.length + 1}/Root 1 0 R>>\nstartxref\n${xrefStart}\n%%EOF`;
+  return Buffer.from(body + xref + trailer);
+}
+
 describe('M1-T3: Document Upload Flow', () => {
   let testToken: string;
   let testDocumentId: string;
@@ -88,11 +117,42 @@ describe('M1-T3: Document Upload Flow', () => {
     const data = await response.json();
     
     expect(data.documentId).toBeTruthy();
-    expect(data.status).toBe('accepted');
+    expect(data.status).toBe('pending');
     expect(data.message).toContain('processing');
 
     testDocumentId = data.documentId;
   });
+
+  test('POST /v1/documents - correctly reads documentType for a realistically large PDF (regression: multipart field-ordering)', async () => {
+    // @fastify/multipart's request.file() resolves as soon as the file part's header is
+    // seen — form fields that appear AFTER the file in the multipart body (as ours do: the
+    // client appends `file` before `documentType`) aren't guaranteed to be parsed yet at
+    // that point. A tiny fixture like createTestPDF() arrives in one shot and never exposes
+    // this; a real-sized file reliably split across multiple chunks does. This is what a
+    // real user actually hit — the fix reads fields only after the file stream is drained.
+    const pdfBuffer = createTestPDFWithText(
+      'This is your auto insurance vehicle policy declarations page. ' + 'Filler text to pad this document to a realistic size. '.repeat(50_000)
+    );
+    const formData = new FormData();
+
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+    formData.append('file', blob, 'large-policy.pdf');
+    formData.append('documentType', 'auto_policy');
+    formData.append('source', 'upload');
+
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${testToken}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    expect(response.status, `expected 202, got ${response.status}: ${JSON.stringify(data)}`).toBe(202);
+    expect(data.documentId).toBeTruthy();
+    expect(data.status).toBe('pending');
+  }, 30000);
 
   test('POST /v1/documents - should reject upload without authentication', async () => {
     const pdfBuffer = createTestPDF();
@@ -128,6 +188,108 @@ describe('M1-T3: Document Upload Flow', () => {
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.message).toContain('PDF');
+  });
+
+  test('POST /v1/documents - should reject a file with a spoofed application/pdf Content-Type but non-PDF bytes (M2-T4)', async () => {
+    const formData = new FormData();
+
+    // Content-Type claims PDF, but the bytes don't start with the %PDF- magic number —
+    // this must be caught by structural (magic-byte) validation, not just the
+    // client-supplied mimetype header used in the test above.
+    const fakeBlob = new Blob(['Not actually a PDF, just labeled as one'], { type: 'application/pdf' });
+    formData.append('file', fakeBlob, 'fake.pdf');
+    formData.append('documentType', 'auto_policy');
+
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${testToken}`,
+      },
+      body: formData,
+    });
+
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.message).toMatch(/valid PDF/i);
+  });
+
+  test('POST /v1/documents - blocks (with requiresConfirmation) content that does not match the selected type, before writing storage/DB (M2-T4)', async () => {
+    const pdfBuffer = createTestPDFWithText(
+      'Thank you for your purchase. Order number: 12345. Subtotal: 49.99. Total due: 53.99.'
+    );
+    const formData = new FormData();
+
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+    formData.append('file', blob, 'receipt-labeled-as-life-insurance.pdf');
+    formData.append('documentType', 'life_insurance');
+
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${testToken}`,
+      },
+      body: formData,
+    });
+
+    // Blocked before storage/DB writes — a mismatch is a confirmable prompt, not a silent accept.
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.requiresConfirmation).toBe(true);
+    expect(data.documentType).toBe('life_insurance');
+    expect(data.message).toMatch(/doesn't look like a life insurance/i);
+    expect(data.documentId).toBeUndefined();
+  });
+
+  test('POST /v1/documents - a confirmed type override still uploads, but stays flagged needs_review (M2-T4)', async () => {
+    const pdfBuffer = createTestPDFWithText(
+      'Thank you for your purchase. Order number: 12345. Subtotal: 49.99. Total due: 53.99.'
+    );
+    const formData = new FormData();
+
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+    formData.append('file', blob, 'receipt-confirmed-as-life-insurance.pdf');
+    formData.append('documentType', 'life_insurance');
+    formData.append('confirmTypeOverride', 'true');
+
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${testToken}`,
+      },
+      body: formData,
+    });
+
+    // The upload succeeds (the user made an informed choice), but it's not treated as
+    // clean — it stays needs_review rather than silently proceeding to pending/parsed.
+    expect(response.status).toBe(202);
+    const data = await response.json();
+    expect(data.status).toBe('needs_review');
+    expect(data.documentId).toBeTruthy();
+    expect(data.message).toMatch(/flagged for review/i);
+  });
+
+  test('POST /v1/documents - accepts content that matches the selected type as pending (M2-T4)', async () => {
+    const pdfBuffer = createTestPDFWithText(
+      'This is your Home Insurance Policy declarations page. Dwelling coverage: 300000.'
+    );
+    const formData = new FormData();
+
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+    formData.append('file', blob, 'home-policy.pdf');
+    formData.append('documentType', 'home_policy');
+
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${testToken}`,
+      },
+      body: formData,
+    });
+
+    expect(response.status).toBe(202);
+    const data = await response.json();
+    expect(data.status).toBe('pending');
+    expect(data.message).toContain('processing');
   });
 
   test('POST /v1/documents - should reject missing documentType', async () => {

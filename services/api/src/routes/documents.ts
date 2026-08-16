@@ -7,12 +7,15 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'crypto';
 import { pipeline } from 'stream/promises';
+import { config } from '../config.js';
 import { authenticateRequest } from '../middleware/auth.js';
 import type { AuthenticatedRequest } from '../types/auth.js';
 import * as documentService from '../services/document.js';
 import * as storageService from '../services/storage.js';
 import * as extractedRecordService from '../services/extracted-record.js';
 import { recordEvent } from '../services/analytics.js';
+import { validatePdfStructure, extractPdfText, checkDocumentTypeMatch } from '../services/document-validation.js';
+import type { TypeMatchResult } from '../services/document-validation.js';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ALLOWED_DOCUMENT_TYPES = [
@@ -49,9 +52,46 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Validate fields
+        // Validate file type
+        if (data.mimetype !== 'application/pdf') {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'Only PDF files are supported',
+          });
+        }
+
+        // Read file into buffer to check size
+        const chunks: Buffer[] = [];
+        let totalSize = 0;
+
+        for await (const chunk of data.file) {
+          totalSize += chunk.length;
+
+          if (totalSize > MAX_FILE_SIZE) {
+            return reply.code(413).send({
+              error: 'Payload Too Large',
+              message: `File exceeds maximum size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+            });
+          }
+
+          chunks.push(chunk);
+        }
+
+        const fileBuffer = Buffer.concat(chunks);
+
+        // Non-file fields (documentType, source, confirmTypeOverride) are read only *after*
+        // the file stream is fully drained. @fastify/multipart's request.file() resolves as
+        // soon as the file part's header is seen — fields that appear later in the multipart
+        // body (as ours do; the web client appends `file` before `documentType`) aren't
+        // guaranteed to be parsed into data.fields yet at that point. For a small test fixture
+        // sent in one shot this race is invisible; for a real browser upload of an
+        // actual-sized PDF it reliably read documentType as undefined. Reading fields here,
+        // after the stream is exhausted, is always safe regardless of field order.
         const documentType = (data.fields.documentType as any)?.value;
         const source = ((data.fields.source as any)?.value || 'upload') as documentService.DocumentSource;
+        // Set after the user has already seen a type-mismatch warning and chosen to proceed anyway
+        // (see the requiresConfirmation branch below) — resubmission of the same upload.
+        const confirmTypeOverride = (data.fields.confirmTypeOverride as any)?.value === 'true';
 
         if (!documentType) {
           return reply.code(400).send({
@@ -67,32 +107,62 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Validate file type
-        if (data.mimetype !== 'application/pdf') {
+        // M2-T4: structural check (magic bytes) — the Content-Type/mimetype check above
+        // is client-supplied and easily spoofed; this confirms the bytes are actually a PDF.
+        const structuralCheck = validatePdfStructure(fileBuffer);
+        if (!structuralCheck.valid) {
+          await recordEvent({
+            userId: authReq.user!.id,
+            event: 'document_validation_failed',
+            properties: { document_type: documentType },
+          });
           return reply.code(400).send({
             error: 'Bad Request',
-            message: 'Only PDF files are supported',
+            message: structuralCheck.reason,
           });
         }
 
-        // Read file into buffer to check size
-        const chunks: Buffer[] = [];
-        let totalSize = 0;
-
-        for await (const chunk of data.file) {
-          totalSize += chunk.length;
-          
-          if (totalSize > MAX_FILE_SIZE) {
-            return reply.code(413).send({
-              error: 'Payload Too Large',
-              message: `File exceeds maximum size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
-            });
-          }
-          
-          chunks.push(chunk);
+        // M2-T4: bare-minimum "does this look like the selected type" keyword check.
+        // Best-effort only — extraction failures (encrypted/image-only/malformed-past-the-
+        // magic-bytes PDFs) are treated as undetermined, never as a mismatch.
+        let typeMatch: TypeMatchResult = { checked: false, matched: true };
+        try {
+          const text = await extractPdfText(fileBuffer);
+          typeMatch = checkDocumentTypeMatch(text, documentType as documentService.DocumentType);
+        } catch (extractError) {
+          request.log.info({ err: extractError }, 'Could not extract PDF text for type-match check; skipping');
         }
 
-        const fileBuffer = Buffer.concat(chunks);
+        // Block *before* storage/DB writes on an unconfirmed mismatch — avoids paying storage
+        // cost for the common case (wrong type picked by mistake) and keeps the user on the
+        // upload screen making an informed choice, rather than discovering a flagged item
+        // later in the vault. requiresConfirmation lets the client show a confirm prompt
+        // instead of a plain error; resubmitting with confirmTypeOverride=true skips this check.
+        // (Not yet reflected in openapi.yaml's Error schema — additive field, existing BadRequest
+        // consumers unaffected.)
+        if (typeMatch.checked && !typeMatch.matched && !confirmTypeOverride) {
+          await recordEvent({
+            userId: authReq.user!.id,
+            event: 'document_validation_failed',
+            properties: { document_type: documentType },
+          });
+          const typeLabel = documentType.replace(/_/g, ' ');
+          return reply.code(400).send({
+            error: 'Needs Confirmation',
+            message: `This doesn't look like a ${typeLabel}. Upload anyway, or choose a different type?`,
+            requiresConfirmation: true,
+            documentType,
+          });
+        }
+
+        // Reaching here means either the type matched (or was inconclusive), or the user
+        // explicitly confirmed an override on a real mismatch. The override case still isn't
+        // "clean" — it stays needs_review so it's never picked up by the parse worker (avoids
+        // showing fabricated/unrelated stub fields for content the system already flagged) and
+        // stays visibly flagged until a future review flow (M2-T5c) resolves it, or the
+        // retention worker removes it if left unresolved (config.documents.retentionDays).
+        const wasConfirmedOverride = typeMatch.checked && !typeMatch.matched && confirmTypeOverride;
+
         const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 
         // Generate storage key
@@ -108,7 +178,6 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           data.mimetype
         );
 
-        // Create document record
         const document = await documentService.createDocument({
           userId: authReq.user!.id,
           documentType: documentType as documentService.DocumentType,
@@ -117,10 +186,14 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           contentType: data.mimetype,
           byteSize: totalSize,
           checksum: fileHash,
+          status: wasConfirmedOverride ? 'needs_review' : 'pending',
         });
 
-        // Document created with status='pending'
-        // Worker will poll and process it automatically
+        await recordEvent({
+          userId: authReq.user!.id,
+          event: wasConfirmedOverride ? 'document_validation_failed' : 'document_validation_passed',
+          properties: { document_type: documentType },
+        });
 
         await recordEvent({
           userId: authReq.user!.id,
@@ -128,10 +201,13 @@ export default async function documentRoutes(fastify: FastifyInstance) {
           properties: { document_type: documentType },
         });
 
+        const typeLabel = documentType.replace(/_/g, ' ');
         return reply.code(202).send({
           documentId: document.id,
-          status: 'accepted',
-          message: 'Document uploaded and queued for processing',
+          status: document.status,
+          message: wasConfirmedOverride
+            ? `Uploaded, but flagged for review since it doesn't look like a ${typeLabel} — take a look when you can. It'll be automatically removed in ${config.documents.retentionDays} days if left unresolved.`
+            : 'Document uploaded and queued for processing',
         });
       } catch (error) {
         request.log.error({ err: error }, 'Failed to upload document');
