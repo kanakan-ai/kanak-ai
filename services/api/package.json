@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npm run copy-assets",
+    "copy-assets": "mkdir -p dist/document-types/schemas && cp src/document-types/schemas/*.json dist/document-types/schemas/",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",

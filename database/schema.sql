@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TYPE plan_tier AS ENUM ('free', 'pro', 'platinum');
 CREATE TYPE user_role AS ENUM ('customer', 'admin');
 CREATE TYPE document_status AS ENUM ('pending', 'parsing', 'ready', 'needs_review', 'failed');
-CREATE TYPE document_type AS ENUM ('auto_policy', 'home_policy', 'life_insurance', 'warranty', 'tax', 'receipt', 'other', 'unknown');
+CREATE TYPE document_type AS ENUM ('auto_policy', 'home_policy', 'life_insurance', 'warranty', 'tax', 'receipt', 'other', 'umbrella_policy', 'landlord_policy', 'renters_policy', 'long_term_care', 'unknown');
 CREATE TYPE document_source AS ENUM ('upload', 'share_sheet', 'email');
 CREATE TYPE identity_channel AS ENUM ('phone', 'email', 'apple', 'gmail', 'microsoft');
 CREATE TYPE alert_type AS ENUM ('renewal', 'deadline', 'rate_change');
@@ -124,6 +124,28 @@ CREATE INDEX extracted_records_fields_gin_idx ON extracted_records USING gin (fi
 
 COMMENT ON TABLE extracted_records IS 'Generic structured parse output for any document_type; type-specific keys in fields JSON';
 COMMENT ON COLUMN extracted_records.fields IS 'OpenAPI FieldValue[] — schema_version selects expected keys';
+
+-- Parse run lineage (explainability / debugging). Optional raw_response is PII-sensitive.
+CREATE TABLE parse_runs (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id         UUID NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
+  content_sha256      TEXT,
+  provider_id         TEXT NOT NULL,
+  model               TEXT,
+  prompt_version      TEXT,
+  schema_version      TEXT,
+  overall_confidence  REAL,
+  status              TEXT NOT NULL CHECK (status IN ('succeeded', 'failed', 'needs_review')),
+  validation_results  JSONB NOT NULL DEFAULT '{}'::jsonb,
+  raw_response        TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX parse_runs_document_id_idx ON parse_runs (document_id);
+CREATE INDEX parse_runs_created_at_idx ON parse_runs (created_at DESC);
+
+COMMENT ON TABLE parse_runs IS 'Parse lineage per attempt; cascade on document/user erase';
+COMMENT ON COLUMN parse_runs.raw_response IS 'Only if STORE_RAW_LLM_RESPONSE=true; may contain PII; never analytics';
 
 -- ---------------------------------------------------------------------------
 -- Alerts

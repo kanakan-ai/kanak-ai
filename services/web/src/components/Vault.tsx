@@ -8,8 +8,8 @@ interface RecordData { party_name: string | null; amount: number | null; amount_
 interface Document { id: string; document_type: string; status: string; updated_at: string; extracted_record: RecordData | null; }
 interface VaultProps { onNavigateToUpload: () => void; onNavigateToDetail: (documentId: string) => void; }
 
-const typeLabel: Record<string, string> = { auto_policy: 'Auto policy', home_policy: 'Home policy', life_insurance: 'Life insurance', warranty: 'Warranty', tax: 'Tax document', receipt: 'Receipt', other: 'Document' };
-const typeIcon: Record<string, string> = { auto_policy: '▤', home_policy: '⌂', life_insurance: '◇', warranty: '✓', tax: '▥', receipt: '▧', other: '▤' };
+const typeLabel: Record<string, string> = { auto_policy: 'Auto policy', home_policy: 'Home policy', life_insurance: 'Life insurance', warranty: 'Warranty', tax: 'Tax document', receipt: 'Receipt', umbrella_policy: 'Umbrella policy', landlord_policy: 'Landlord policy', renters_policy: 'Renters policy', long_term_care: 'Long-term care insurance', other: 'Document' };
+const typeIcon: Record<string, string> = { auto_policy: '▤', home_policy: '⌂', life_insurance: '◇', warranty: '✓', tax: '▥', receipt: '▧', umbrella_policy: '☂', landlord_policy: '⌂', renters_policy: '⌂', long_term_care: '♥', other: '▤' };
 function parseDocumentDate(date: string | null) { if (!date) return null; const parsed = new Date(date); return Number.isNaN(parsed.getTime()) ? null : parsed; }
 function daysUntil(date: string | null) { const parsed = parseDocumentDate(date); return parsed ? Math.ceil((parsed.getTime() - new Date(new Date().toDateString()).getTime()) / 86400000) : null; }
 function formatDate(date: string | null) { const parsed = parseDocumentDate(date); return parsed ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(parsed) : null; }

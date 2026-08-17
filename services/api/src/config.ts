@@ -37,6 +37,11 @@ export interface Config {
     // retention worker removes it (storage object + row). See services/document-retention.ts.
     retentionDays: number;
   };
+  parse: {
+    // design/parse-provider.md: gemini|claude|grok|local_vlm|mock. Only 'mock' is
+    // implemented in M2-T5a; anything else currently falls back to mock (see parse/index.ts).
+    provider: string;
+  };
   adminEmails: string[];
 }
 
@@ -78,6 +83,9 @@ export const config: Config = {
   },
   documents: {
     retentionDays: parseInt(getEnv('DOCUMENT_RETENTION_DAYS', '14'), 10),
+  },
+  parse: {
+    provider: getEnv('PARSE_PROVIDER', 'mock'),
   },
   // M1-T6: emails in this list get role='admin' on first sign-in, for local admin ops dashboard access.
   // Admin console must never be linked from customer UI (STEERING.md rule 7).

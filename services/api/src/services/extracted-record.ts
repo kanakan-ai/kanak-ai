@@ -13,13 +13,19 @@ export type AmountFrequency =
   | 'annual'
   | 'unknown';
 
+/** Mirrors openapi.yaml FieldValue.value: scalar, or an array of scalars/flat objects (one level deep). */
+export type FieldScalarValue = string | number | boolean | null;
+export type FieldArrayItemValue = FieldScalarValue | Record<string, FieldScalarValue>;
+
 export interface FieldValue {
   key: string;
   label: string;
-  value: string | number | boolean | null;
+  value: FieldScalarValue | FieldArrayItemValue[];
   confidence?: number;
   needsReview?: boolean;
   source?: string;
+  /** Review UI accordion section; present on scalar fields only (document-type-modules.md rule 6). */
+  group?: string;
 }
 
 export interface ExtractedRecord {

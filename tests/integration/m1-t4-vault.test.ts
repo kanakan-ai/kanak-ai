@@ -133,7 +133,10 @@ describe('M1-T4: Vault View & Stub Parse', () => {
     expect(document.extracted_record.party_name).toBeTruthy();
     expect(document.extracted_record.reference_id).toBeTruthy();
     expect(parseFloat(document.extracted_record.amount as string)).toBeGreaterThan(0);
-    expect(document.extracted_record.amount_frequency).toBe('annual');
+    // M2-T5a mock adapter deterministically picks the first amount_frequency enum option
+    // ('one_time') for any type — the old stub worker hardcoded 'annual' specifically for
+    // auto_policy, which was never a schema requirement, just that implementation's choice.
+    expect(document.extracted_record.amount_frequency).toBe('one_time');
     expect(document.extracted_record.key_date).toBeTruthy();
   });
 
@@ -152,7 +155,7 @@ describe('M1-T4: Vault View & Stub Parse', () => {
     expect(fieldKeys).toContain('policy_number');
     expect(fieldKeys).toContain('premium_annual');
     expect(fieldKeys).toContain('renewal_date');
-    expect(fieldKeys).toContain('dwelling_coverage');
+    expect(fieldKeys).toContain('dwelling_coverage_a_limit');
 
     expect(document.extracted_record.party_name).toBeTruthy();
     expect(parseFloat(document.extracted_record.amount as string)).toBeGreaterThan(0);
@@ -171,13 +174,15 @@ describe('M1-T4: Vault View & Stub Parse', () => {
     const fieldKeys = document.extracted_record.fields.map((f: any) => f.key);
     expect(fieldKeys).toContain('carrier');
     expect(fieldKeys).toContain('policy_number');
-    expect(fieldKeys).toContain('death_benefit');
+    // Real field key per design/schemas/life_insurance.v1.json (M2-T5a) — the pre-T5a
+    // stub worker used a made-up 'death_benefit' key that never matched the real schema.
+    expect(fieldKeys).toContain('coverage_amount');
   });
 
   test('Warranty document is parsed correctly', async () => {
     const token = await createTestUser();
     const documentId = await uploadDocument(token, 'warranty');
-    
+
     const document = await waitForParsing(token, documentId);
 
     expect(document.status).toBe('ready');
@@ -185,14 +190,16 @@ describe('M1-T4: Vault View & Stub Parse', () => {
     expect(document.extracted_record.schema_version).toBe('warranty.v1');
 
     const fieldKeys = document.extracted_record.fields.map((f: any) => f.key);
-    expect(fieldKeys).toContain('issuer');
-    expect(fieldKeys).toContain('warranty_number');
+    // Real field keys per design/schemas/warranty.v1.json (M2-T5a) — the pre-T5a stub
+    // worker used made-up 'issuer'/'warranty_number' keys that never matched the schema.
+    expect(fieldKeys).toContain('provider');
+    expect(fieldKeys).toContain('contract_number');
   });
 
   test('Receipt document is parsed correctly', async () => {
     const token = await createTestUser();
     const documentId = await uploadDocument(token, 'receipt');
-    
+
     const document = await waitForParsing(token, documentId);
 
     expect(document.status).toBe('ready');
@@ -201,7 +208,9 @@ describe('M1-T4: Vault View & Stub Parse', () => {
 
     const fieldKeys = document.extracted_record.fields.map((f: any) => f.key);
     expect(fieldKeys).toContain('merchant');
-    expect(fieldKeys).toContain('order_number');
+    // Real field key per design/schemas/receipt.v1.json (M2-T5a) — the pre-T5a stub
+    // worker used a made-up 'order_number' key that never matched the real schema.
+    expect(fieldKeys).toContain('receipt_number');
     expect(fieldKeys).toContain('total_amount');
   });
 

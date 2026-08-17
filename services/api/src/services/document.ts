@@ -13,6 +13,10 @@ export type DocumentType =
   | 'tax'
   | 'receipt'
   | 'other'
+  | 'umbrella_policy'
+  | 'landlord_policy'
+  | 'renters_policy'
+  | 'long_term_care'
   | 'unknown';
 
 export type DocumentStatus =

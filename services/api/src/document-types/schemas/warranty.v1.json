@@ -1,0 +1,202 @@
+{
+  "schema_version": "warranty.v1",
+  "document_type": "warranty",
+  "description": "Comprehensive product/home warranty extraction fields",
+  "fields": [
+    {
+      "key": "provider",
+      "label": "Warranty provider / issuer",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "provider"
+    },
+    {
+      "key": "contract_number",
+      "label": "Contract / warranty number",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "provider"
+    },
+    {
+      "key": "provider_phone",
+      "label": "Provider phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "provider"
+    },
+    {
+      "key": "claim_phone",
+      "label": "Claims phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "provider"
+    },
+    {
+      "key": "retailer_name",
+      "label": "Retailer / seller",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "purchase"
+    },
+    {
+      "key": "retailer_address",
+      "label": "Retailer address",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "purchase"
+    },
+    {
+      "key": "purchase_order_number",
+      "label": "Purchase order number",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "purchase"
+    },
+    {
+      "key": "purchase_date",
+      "label": "Purchase date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "purchase"
+    },
+    {
+      "key": "purchase_price",
+      "label": "Purchase or contract price",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "purchase"
+    },
+    {
+      "key": "product_name",
+      "label": "Product or property covered",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "product"
+    },
+    {
+      "key": "brand",
+      "label": "Brand / manufacturer",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "product"
+    },
+    {
+      "key": "model",
+      "label": "Model",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "product"
+    },
+    {
+      "key": "serial_number",
+      "label": "Serial number",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "product"
+    },
+    {
+      "key": "category",
+      "label": "Product category",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "product"
+    },
+    {
+      "key": "coverage_start",
+      "label": "Coverage start date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "coverage"
+    },
+    {
+      "key": "coverage_end",
+      "label": "Coverage end / expiry date",
+      "type": "date",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "coverage"
+    },
+    {
+      "key": "coverage_summary",
+      "label": "What is covered (short)",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "deductible",
+      "label": "Service deductible / fee",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "transferable",
+      "label": "Transferable to new owner",
+      "type": "boolean",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "amount_frequency",
+      "label": "Amount frequency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "coverage",
+      "enum": [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "annual",
+        "unknown"
+      ]
+    },
+    {
+      "key": "covered_components",
+      "label": "Covered components",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "exclusions",
+      "label": "Exclusions",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "string"
+      }
+    }
+  ],
+  "denormalized_columns": {
+    "party_name": "provider",
+    "reference_id": "contract_number",
+    "amount": "purchase_price",
+    "key_date": "coverage_end",
+    "amount_frequency": "amount_frequency"
+  }
+}

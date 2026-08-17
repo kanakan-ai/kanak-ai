@@ -1,0 +1,403 @@
+{
+  "schema_version": "life_insurance.v1",
+  "document_type": "life_insurance",
+  "description": "Comprehensive life insurance policy extraction fields",
+  "fields": [
+    {
+      "key": "carrier",
+      "label": "Carrier",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "policy_number",
+      "label": "Policy number",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "naic_code",
+      "label": "NAIC code",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "policy_status",
+      "label": "Policy status",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        "ACTIVE",
+        "LAPSED",
+        "CANCELLED",
+        "PAID_UP"
+      ]
+    },
+    {
+      "key": "policy_type",
+      "label": "Policy type",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        "TERM",
+        "WHOLE",
+        "UNIVERSAL",
+        "VARIABLE",
+        "VARIABLE_UNIVERSAL"
+      ]
+    },
+    {
+      "key": "issue_date",
+      "label": "Issue date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "effective_date",
+      "label": "Effective date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "renewal_date",
+      "label": "Renewal / term end date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "agent_name",
+      "label": "Agent name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agency_name",
+      "label": "Agency name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_phone",
+      "label": "Agent phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_email",
+      "label": "Agent email",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "coverage_amount",
+      "label": "Death benefit / face amount",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "coverage"
+    },
+    {
+      "key": "cash_value",
+      "label": "Cash value",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "cash_value_as_of_date",
+      "label": "Cash value as of",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "premium_annual",
+      "label": "Annual premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium"
+    },
+    {
+      "key": "premium_mode",
+      "label": "Premium mode",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium",
+      "enum": [
+        "ANNUAL",
+        "SEMI_ANNUAL",
+        "QUARTERLY",
+        "MONTHLY"
+      ]
+    },
+    {
+      "key": "premium_term",
+      "label": "Premium term",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "grace_period_days",
+      "label": "Grace period (days)",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "net_amount_due",
+      "label": "Net amount due",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "currency",
+      "label": "Currency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "amount_frequency",
+      "label": "Amount frequency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium",
+      "enum": [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "annual",
+        "unknown"
+      ]
+    },
+    {
+      "key": "risk_class",
+      "label": "Risk class",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "underwriting"
+    },
+    {
+      "key": "tobacco_status",
+      "label": "Tobacco status",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "underwriting",
+      "enum": [
+        "TOBACCO",
+        "NON_TOBACCO",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "key": "rating_table",
+      "label": "Rating table",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "underwriting"
+    },
+    {
+      "key": "insureds",
+      "label": "Insureds",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "insured_id",
+            "label": "Insured ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "first_name",
+            "label": "First name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "last_name",
+            "label": "Last name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "dob",
+            "label": "Date of birth",
+            "type": "date",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "gender",
+            "label": "Gender",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "is_primary_insured",
+            "label": "Primary insured",
+            "type": "boolean",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "relationship_to_primary",
+            "label": "Relationship to primary insured",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "SELF",
+              "SPOUSE",
+              "OTHER"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "beneficiaries",
+      "label": "Beneficiaries",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "beneficiary_id",
+            "label": "Beneficiary ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "name",
+            "label": "Name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "relationship",
+            "label": "Relationship",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "beneficiary_type",
+            "label": "Beneficiary type",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false,
+            "enum": [
+              "PRIMARY",
+              "CONTINGENT"
+            ]
+          },
+          {
+            "key": "percentage",
+            "label": "Percentage",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "riders",
+      "label": "Riders",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "rider_code",
+            "label": "Rider code",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "premium",
+            "label": "Premium",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    }
+  ],
+  "denormalized_columns": {
+    "party_name": "carrier",
+    "reference_id": "policy_number",
+    "amount": "premium_annual",
+    "key_date": "renewal_date",
+    "amount_frequency": "amount_frequency"
+  }
+}

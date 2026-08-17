@@ -1,0 +1,308 @@
+{
+  "schema_version": "long_term_care.v1",
+  "document_type": "long_term_care",
+  "description": "Comprehensive long-term care insurance policy extraction fields",
+  "fields": [
+    {
+      "key": "carrier",
+      "label": "Carrier",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "policy_number",
+      "label": "Policy number",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "naic_code",
+      "label": "NAIC code",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "policy_status",
+      "label": "Policy status",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        "ACTIVE",
+        "LAPSED",
+        "CANCELLED",
+        "PAID_UP"
+      ]
+    },
+    {
+      "key": "issue_date",
+      "label": "Issue date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "effective_date",
+      "label": "Effective date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "renewal_date",
+      "label": "Renewal / premium due date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "agent_name",
+      "label": "Agent name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agency_name",
+      "label": "Agency name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_phone",
+      "label": "Agent phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_email",
+      "label": "Agent email",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "daily_benefit_amount",
+      "label": "Daily benefit amount",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "benefits"
+    },
+    {
+      "key": "monthly_benefit_amount",
+      "label": "Monthly benefit amount",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "benefits"
+    },
+    {
+      "key": "benefit_period_years",
+      "label": "Benefit period (years)",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "benefits"
+    },
+    {
+      "key": "lifetime_maximum_benefit",
+      "label": "Lifetime maximum benefit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "benefits"
+    },
+    {
+      "key": "elimination_period_days",
+      "label": "Elimination period (days)",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "benefits"
+    },
+    {
+      "key": "premium_annual",
+      "label": "Annual premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium"
+    },
+    {
+      "key": "premium_mode",
+      "label": "Premium mode",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium",
+      "enum": [
+        "ANNUAL",
+        "SEMI_ANNUAL",
+        "QUARTERLY",
+        "MONTHLY"
+      ]
+    },
+    {
+      "key": "guaranteed_renewable",
+      "label": "Guaranteed renewable",
+      "type": "boolean",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "net_amount_due",
+      "label": "Net amount due",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "currency",
+      "label": "Currency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "amount_frequency",
+      "label": "Amount frequency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium",
+      "enum": [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "annual",
+        "unknown"
+      ]
+    },
+    {
+      "key": "insureds",
+      "label": "Insureds",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "insured_id",
+            "label": "Insured ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "first_name",
+            "label": "First name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "last_name",
+            "label": "Last name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "dob",
+            "label": "Date of birth",
+            "type": "date",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "is_primary_insured",
+            "label": "Primary insured",
+            "type": "boolean",
+            "required": true,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "care_types_covered",
+      "label": "Care types covered",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "description": "e.g. HOME_CARE, ASSISTED_LIVING, NURSING_HOME, ADULT_DAY_CARE",
+      "items": {
+        "type": "string"
+      }
+    },
+    {
+      "key": "riders",
+      "label": "Riders",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "rider_code",
+            "label": "Rider code",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "premium",
+            "label": "Premium",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    }
+  ],
+  "denormalized_columns": {
+    "party_name": "carrier",
+    "reference_id": "policy_number",
+    "amount": "premium_annual",
+    "key_date": "renewal_date",
+    "amount_frequency": "amount_frequency"
+  }
+}

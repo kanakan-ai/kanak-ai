@@ -7,6 +7,7 @@
 
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type { DocumentType } from './document.js';
+import { getDocumentTypeModule } from '../document-types/registry.js';
 
 const PDF_MAGIC_BYTES = Buffer.from('%PDF-');
 
@@ -30,17 +31,17 @@ export function validatePdfStructure(buffer: Buffer): StructuralValidationResult
  * distinctive keywords per type, matched against extracted text. Deliberately
  * weak and lenient (any single keyword hit counts as a match) — the real
  * semantic check is document-type-modules.md's per-type registry.validate()
- * (M2-T5a), which will have the actual parse model available. This exists
+ * (full M2-T5a parse pipeline), which has the actual model available. This exists
  * only to catch obvious, unambiguous mismatches (e.g. a receipt uploaded as
- * a life insurance policy) without waiting on that registry, and without
- * ever hard-rejecting an upload — see checkDocumentTypeMatch below.
+ * a life insurance policy) without ever hard-rejecting an upload on its own —
+ * see checkDocumentTypeMatch below.
+ *
+ * Keywords for the 9 modules with a real schema live on the document-types
+ * registry (single source of truth, also used by the parse worker). 'tax' has
+ * no dedicated module (no design/schemas/tax.v1.json — parse-prompts.md §4.10),
+ * so it keeps its own small keyword list here as the one exception.
  */
-const TYPE_KEYWORDS: Partial<Record<DocumentType, string[]>> = {
-  auto_policy: ['auto insurance', 'automobile', 'vehicle', ' vin ', 'motor vehicle', 'collision coverage'],
-  home_policy: ['home insurance', 'homeowners', 'homeowner', 'dwelling', 'property insurance'],
-  life_insurance: ['life insurance', 'beneficiary', 'death benefit', 'face amount', 'term life', 'whole life'],
-  warranty: ['warranty', 'service contract', 'extended warranty'],
-  receipt: ['receipt', 'subtotal', 'total due', 'purchase date', 'order number'],
+const EXTRA_KEYWORDS: Partial<Record<DocumentType, string[]>> = {
   tax: ['internal revenue', 'form 1040', 'w-2', 'tax return', 'irs'],
 };
 
@@ -54,7 +55,7 @@ export interface TypeMatchResult {
 }
 
 export function checkDocumentTypeMatch(text: string, documentType: DocumentType): TypeMatchResult {
-  const keywords = TYPE_KEYWORDS[documentType];
+  const keywords = getDocumentTypeModule(documentType)?.typeKeywords ?? EXTRA_KEYWORDS[documentType];
   if (!keywords || text.trim().length < MIN_TEXT_LENGTH_TO_JUDGE) {
     return { checked: false, matched: true };
   }

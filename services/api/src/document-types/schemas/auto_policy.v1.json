@@ -1,0 +1,847 @@
+{
+  "schema_version": "auto_policy.v1",
+  "document_type": "auto_policy",
+  "description": "Comprehensive auto insurance declarations / proof-of-insurance extraction fields",
+  "fields": [
+    {
+      "key": "carrier",
+      "label": "Carrier / underwriting company",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "policy_number",
+      "label": "Policy number",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "billing_account_number",
+      "label": "Billing account number",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "naic_code",
+      "label": "NAIC code",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "policy_status",
+      "label": "Policy status",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        "ACTIVE",
+        "CANCELLED",
+        "PENDING",
+        "EXPIRED"
+      ]
+    },
+    {
+      "key": "effective_date",
+      "label": "Effective date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "renewal_date",
+      "label": "Renewal / expiration date",
+      "type": "date",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "term_months",
+      "label": "Term length (months)",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        6,
+        12
+      ]
+    },
+    {
+      "key": "agent_name",
+      "label": "Agent name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agency_name",
+      "label": "Agency name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_phone",
+      "label": "Agent phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_email",
+      "label": "Agent email",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "gross_premium",
+      "label": "Gross premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "total_discounts_amount",
+      "label": "Total discounts",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "premium_annual",
+      "label": "Total policy premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium"
+    },
+    {
+      "key": "fees_and_surcharges",
+      "label": "Fees and surcharges",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "net_amount_due",
+      "label": "Net amount due",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "currency",
+      "label": "Currency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "amount_frequency",
+      "label": "Amount frequency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium",
+      "enum": [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "annual",
+        "unknown"
+      ]
+    },
+    {
+      "key": "bi_per_person_limit",
+      "label": "Bodily injury \u2014 per person limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "bi_per_occurrence_limit",
+      "label": "Bodily injury \u2014 per occurrence limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "bi_premium",
+      "label": "Bodily injury premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "pd_per_occurrence_limit",
+      "label": "Property damage \u2014 per occurrence limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "pd_premium",
+      "label": "Property damage premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "um_bi_per_person_limit",
+      "label": "Uninsured motorist BI \u2014 per person limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "um_bi_per_occurrence_limit",
+      "label": "Uninsured motorist BI \u2014 per occurrence limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "um_bi_premium",
+      "label": "Uninsured motorist BI premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "pip_limit",
+      "label": "Personal injury protection limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "pip_deductible",
+      "label": "Personal injury protection deductible",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "pip_premium",
+      "label": "Personal injury protection premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "medical_expense_limit_per_person",
+      "label": "Medical expense limit per person",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "medical_expense_premium",
+      "label": "Medical expense premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "named_insureds",
+      "label": "Named insureds",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "insured_id",
+            "label": "Insured ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "first_name",
+            "label": "First name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "middle_name",
+            "label": "Middle name",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "last_name",
+            "label": "Last name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "suffix",
+            "label": "Suffix",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "is_primary_named_insured",
+            "label": "Primary named insured",
+            "type": "boolean",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "email",
+            "label": "Email",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "phone",
+            "label": "Phone",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_street1",
+            "label": "Address line 1",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_street2",
+            "label": "Address line 2",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_city",
+            "label": "City",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_state",
+            "label": "State",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_postal_code",
+            "label": "Postal code",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "vehicles",
+      "label": "Vehicles insured",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "vehicle_id",
+            "label": "Vehicle ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "year",
+            "label": "Year",
+            "type": "number",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "make",
+            "label": "Make",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "model",
+            "label": "Model",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "series",
+            "label": "Series / trim",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "vin",
+            "label": "VIN",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": true
+          },
+          {
+            "key": "garaging_city",
+            "label": "Garaging city",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "garaging_state",
+            "label": "Garaging state",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "garaging_postal_code",
+            "label": "Garaging ZIP",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "vehicle_premium",
+            "label": "Vehicle premium",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "vehicle_coverages",
+      "label": "Per-vehicle coverage details",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": true,
+      "description": "One row per vehicle x coverage type \u2014 restores your \u00a78 per-vehicle coverages object (BI/PD/UM-BI/UM-PD/PIP/collision/comprehensive/rental reimbursement/roadside assistance), normalized instead of nested under each vehicle.",
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "vehicle_id_ref",
+            "label": "Vehicle ID",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "coverage_type",
+            "label": "Coverage type",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false,
+            "enum": [
+              "BODILY_INJURY_LIABILITY",
+              "PROPERTY_DAMAGE_LIABILITY",
+              "UM_BODILY_INJURY",
+              "UM_PROPERTY_DAMAGE",
+              "PERSONAL_INJURY_PROTECTION",
+              "COLLISION",
+              "COMPREHENSIVE",
+              "RENTAL_REIMBURSEMENT",
+              "ROADSIDE_ASSISTANCE"
+            ]
+          },
+          {
+            "key": "is_included",
+            "label": "Included",
+            "type": "boolean",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "per_person_limit",
+            "label": "Per person limit",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "per_occurrence_limit",
+            "label": "Per occurrence limit",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "deductible",
+            "label": "Deductible",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "daily_limit",
+            "label": "Daily limit",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "max_limit",
+            "label": "Max limit",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "premium",
+            "label": "Premium",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "drivers",
+      "label": "Listed drivers",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "driver_id",
+            "label": "Driver ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "first_name",
+            "label": "First name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "last_name",
+            "label": "Last name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "dob",
+            "label": "Date of birth",
+            "type": "date",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "gender",
+            "label": "Gender",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "marital_status",
+            "label": "Marital status",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "license_number",
+            "label": "License number",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "license_state",
+            "label": "License state",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "relationship_to_insured",
+            "label": "Relationship to insured",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "SELF",
+              "SPOUSE",
+              "CHILD",
+              "OTHER"
+            ]
+          },
+          {
+            "key": "driver_status",
+            "label": "Driver status",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false,
+            "enum": [
+              "ACTIVE",
+              "EXCLUDED",
+              "REMOVED"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "discounts",
+      "label": "Discounts applied",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "discount_code",
+            "label": "Discount code",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "discount_name",
+            "label": "Discount name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "category",
+            "label": "Category",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "POLICY",
+              "VEHICLE",
+              "DRIVER",
+              "TELEMATICS"
+            ]
+          },
+          {
+            "key": "target_id_ref",
+            "label": "Target ID (vehicle/driver)",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "discount_type",
+            "label": "Discount type",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "PERCENTAGE",
+              "FLAT_AMOUNT"
+            ]
+          },
+          {
+            "key": "discount_value",
+            "label": "Discount value",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "amount_saved",
+            "label": "Amount saved",
+            "type": "number",
+            "required": true,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "endorsements",
+      "label": "Endorsements",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "endorsement_code",
+            "label": "Endorsement code",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "premium",
+            "label": "Premium",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "vehicle_id_ref",
+            "label": "Vehicle ID (if vehicle-specific)",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "other_charges",
+      "label": "Other charges",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "charge_name",
+            "label": "Charge name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "amount",
+            "label": "Amount",
+            "type": "number",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "vehicle_id_ref",
+            "label": "Vehicle ID (if vehicle-specific)",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "insurance_cards",
+      "label": "Proof-of-insurance ID cards",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "description": "Real policies typically print one ID card per vehicle. policyNumber/naicCode/effectiveDate/expirationDate/agentPhone/companyName are intentionally not repeated here \u2014 they don't vary per card and are already captured at the policy level above.",
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "vehicle_id_ref",
+            "label": "Vehicle ID this card is for",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "insured_name",
+            "label": "Insured name as printed on card",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "description": "The card's own display name \u2014 may differ from structured named_insureds records (e.g. \"John & Jane Smith\")"
+          },
+          {
+            "key": "vehicle_description",
+            "label": "Vehicle description as printed on card",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "description": "e.g. \"2023 Ford Mustang\" \u2014 single-line, as printed"
+          },
+          {
+            "key": "disclaimer_text",
+            "label": "Disclaimer text",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    }
+  ],
+  "denormalized_columns": {
+    "party_name": "carrier",
+    "reference_id": "policy_number",
+    "amount": "premium_annual",
+    "key_date": "renewal_date",
+    "amount_frequency": "amount_frequency"
+  }
+}

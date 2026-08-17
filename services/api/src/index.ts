@@ -4,6 +4,7 @@
  * M1-T2: Email authentication + session management
  * M1-T3: Document upload and vault
  * M1-T4: Vault view with stub parse worker
+ * M2-T5a: Real ParseProvider abstraction + document-type registry replace the stub worker
  */
 
 import Fastify from 'fastify';
@@ -18,7 +19,7 @@ import { adminRoutes } from './routes/admin.js';
 import { checkHealth } from './lib/db.js';
 import { recordLatency } from './lib/latency.js';
 import { initMinIO } from './services/storage.js';
-import { startStubParseWorker } from './workers/stub-parse-worker.js';
+import { startParseWorker } from './workers/parse-worker.js';
 import { startDocumentRetentionWorker } from './workers/document-retention-worker.js';
 
 const app = Fastify({
@@ -123,9 +124,9 @@ async function start() {
     await initMinIO();
     console.log('✓ MinIO initialized');
 
-    // Start stub parse worker (M1-T4)
-    startStubParseWorker();
-    console.log('✓ Stub parse worker started');
+    // Start parse worker (M2-T5a — replaces the M1-T4 stub)
+    startParseWorker();
+    console.log('✓ Parse worker started');
 
     // Start document retention worker (M2-T4)
     startDocumentRetentionWorker();

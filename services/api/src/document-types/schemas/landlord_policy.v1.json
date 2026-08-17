@@ -1,0 +1,622 @@
+{
+  "schema_version": "landlord_policy.v1",
+  "document_type": "landlord_policy",
+  "description": "Comprehensive landlord / rental dwelling insurance policy extraction fields",
+  "fields": [
+    {
+      "key": "carrier",
+      "label": "Carrier",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "policy_number",
+      "label": "Policy number",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "naic_code",
+      "label": "NAIC code",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy"
+    },
+    {
+      "key": "policy_status",
+      "label": "Policy status",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        "ACTIVE",
+        "CANCELLED",
+        "PENDING",
+        "EXPIRED"
+      ]
+    },
+    {
+      "key": "form_type",
+      "label": "Form type",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        "DP-1",
+        "DP-2",
+        "DP-3"
+      ]
+    },
+    {
+      "key": "effective_date",
+      "label": "Effective date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "renewal_date",
+      "label": "Renewal / expiration date",
+      "type": "date",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "policy"
+    },
+    {
+      "key": "term_months",
+      "label": "Term length (months)",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "policy",
+      "enum": [
+        6,
+        12
+      ]
+    },
+    {
+      "key": "agent_name",
+      "label": "Agent name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agency_name",
+      "label": "Agency name",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_phone",
+      "label": "Agent phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "agent_email",
+      "label": "Agent email",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "agent"
+    },
+    {
+      "key": "property_address_street1",
+      "label": "Rental property address line 1",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "property"
+    },
+    {
+      "key": "property_address_street2",
+      "label": "Rental property address line 2",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "property_address_city",
+      "label": "Property city",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "property_address_state",
+      "label": "Property state",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "property_address_postal_code",
+      "label": "Property postal code",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "unit_count",
+      "label": "Number of units",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "year_built",
+      "label": "Year built",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "construction_type",
+      "label": "Construction type",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "roof_type",
+      "label": "Roof type",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "square_footage",
+      "label": "Square footage",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property"
+    },
+    {
+      "key": "occupancy_type",
+      "label": "Occupancy type",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "property",
+      "enum": [
+        "TENANT_OCCUPIED",
+        "VACANT",
+        "SEASONAL_RENTAL"
+      ]
+    },
+    {
+      "key": "dwelling_coverage_limit",
+      "label": "Dwelling coverage limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "coverage"
+    },
+    {
+      "key": "dwelling_coverage_premium",
+      "label": "Dwelling coverage premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "other_structures_coverage_limit",
+      "label": "Other structures coverage limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "loss_of_rents_coverage_limit",
+      "label": "Loss of rents coverage limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "coverage"
+    },
+    {
+      "key": "loss_of_rents_coverage_premium",
+      "label": "Loss of rents coverage premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "liability_coverage_limit",
+      "label": "Liability coverage limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "liability_coverage_premium",
+      "label": "Liability coverage premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "medical_payments_coverage_limit",
+      "label": "Medical payments coverage limit",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "coverage"
+    },
+    {
+      "key": "all_peril_deductible",
+      "label": "All-peril deductible",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "deductibles"
+    },
+    {
+      "key": "wind_hail_deductible",
+      "label": "Wind / hail deductible",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "deductibles"
+    },
+    {
+      "key": "gross_premium",
+      "label": "Gross premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "total_discounts_amount",
+      "label": "Total discounts",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "premium_annual",
+      "label": "Total policy premium",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium"
+    },
+    {
+      "key": "fees_and_surcharges",
+      "label": "Fees and surcharges",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "net_amount_due",
+      "label": "Net amount due",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "currency",
+      "label": "Currency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "premium"
+    },
+    {
+      "key": "amount_frequency",
+      "label": "Amount frequency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "premium",
+      "enum": [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "annual",
+        "unknown"
+      ]
+    },
+    {
+      "key": "named_insureds",
+      "label": "Named insureds",
+      "type": "array",
+      "required": true,
+      "review_if_low_confidence": true,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "insured_id",
+            "label": "Insured ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "first_name",
+            "label": "First name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "middle_name",
+            "label": "Middle name",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "last_name",
+            "label": "Last name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "suffix",
+            "label": "Suffix",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "is_primary_named_insured",
+            "label": "Primary named insured",
+            "type": "boolean",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "email",
+            "label": "Email",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "phone",
+            "label": "Phone",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_street1",
+            "label": "Address line 1",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_street2",
+            "label": "Address line 2",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_city",
+            "label": "City",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_state",
+            "label": "State",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "address_postal_code",
+            "label": "Postal code",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "mortgagees",
+      "label": "Mortgagees / lienholders",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "mortgagee_name",
+            "label": "Mortgagee / lienholder name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "mortgagee_address",
+            "label": "Mortgagee address",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "loan_number",
+            "label": "Loan number",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "loan_type",
+            "label": "Loan type",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "FIRST_MORTGAGE",
+              "SECOND_MORTGAGE",
+              "HELOC",
+              "OTHER"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "endorsements",
+      "label": "Endorsements",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "endorsement_code",
+            "label": "Endorsement code",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "premium",
+            "label": "Premium",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "discounts",
+      "label": "Discounts applied",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "discount_code",
+            "label": "Discount code",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "discount_name",
+            "label": "Discount name",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "category",
+            "label": "Category",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "POLICY",
+              "VEHICLE",
+              "DRIVER",
+              "TELEMATICS"
+            ]
+          },
+          {
+            "key": "target_id_ref",
+            "label": "Target ID (vehicle/driver)",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "discount_type",
+            "label": "Discount type",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false,
+            "enum": [
+              "PERCENTAGE",
+              "FLAT_AMOUNT"
+            ]
+          },
+          {
+            "key": "discount_value",
+            "label": "Discount value",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "amount_saved",
+            "label": "Amount saved",
+            "type": "number",
+            "required": true,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    }
+  ],
+  "denormalized_columns": {
+    "party_name": "carrier",
+    "reference_id": "policy_number",
+    "amount": "premium_annual",
+    "key_date": "renewal_date",
+    "amount_frequency": "amount_frequency"
+  }
+}

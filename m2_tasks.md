@@ -105,18 +105,48 @@ Structural (magic-bytes) PDF validation, independent of client-supplied Content-
 
 ---
 
-### ⬜ M2-T5a: ParseProvider abstraction + mock adapter + document-type modules
+### 🟡 M2-T5a: ParseProvider abstraction + mock adapter + document-type modules
 
-**Status**: Not started
+**Status**: ✅ **Reopened scope complete — automated** (2026-08-17). Comprehensive schema rework landed on top of the already-complete first pass. Awaiting your manual verification (steps 1–3, 6–7 in the verification doc).
 **Depends on**: M1-T4
 
 Replaces the M1 stub worker: `ParseProvider` interface + registry, atomic per-type modules per `design/schemas/*` and `document-type-modules.md`, `mock` adapter, writes `parse_runs`.
 
-**9 document types now have dedicated modules** (expanded 2026-08-16, spec updated by you — `schema.sql`, `openapi.yaml`, `design/schemas/*`, `parse-prompts.md`, `document-type-modules.md`): `auto_policy`, `home_policy`, `life_insurance`, `warranty`, `receipt` (original 5) + `umbrella_policy`, `landlord_policy`, `renters_policy`, `long_term_care` (new). `tax`/`other` still share the generic fallback path (no dedicated schema, per `parse-prompts.md` §4.10) — unchanged.
+**All 9 document types have dedicated modules**: `auto_policy`, `home_policy`, `life_insurance`, `warranty`, `receipt` (original 5) + `umbrella_policy`, `landlord_policy`, `renters_policy`, `long_term_care` (added 2026-08-16). `tax`/`other` share a generic 2-field (`title`, `date`) fallback, per `parse-prompts.md` §4.10.
 
-Also in scope now: extend `services/api/src/services/document-validation.ts`'s M2-T4 type-match keyword lists to cover the 4 new types (app-repo work, no spec dependency beyond the enum existing) — e.g. `umbrella_policy: ['umbrella', 'excess liability']`, `landlord_policy: ['landlord', 'rental dwelling', 'loss of rents']`, `renters_policy: ['renters insurance', 'tenant', 'ho-4']`, `long_term_care: ['long-term care', 'long term care', 'ltc', 'daily benefit']`.
+**First-pass deliverables** (done, not undone by the reopen):
+- ✅ `database/schema.sql` resynced from spec — was missing `parse_runs` entirely and the 4 new enum values; also applied live (non-destructive `ALTER TYPE`/`CREATE TABLE IF NOT EXISTS`) to the running local Postgres, since the volume predates this change and `schema.sql` only runs on first `initdb`. Broader drift in `erasure_jobs`/`data_export_jobs`/`audit_events` left untouched — unused by any app code, unrelated to this task.
+- ✅ `services/api/src/parse/` — `ParseProvider` interface (matches `design/parse-provider.md`), `mock` adapter (schema-driven, not hardcoded), registry keyed by `PARSE_PROVIDER` (default `mock`; unrecognized values also fall back to mock until M2-T5b adds a real adapter)
+- ✅ `services/api/src/document-types/` — registry of all 9 modules (schema JSON copied from spec + type-match keywords + generic `mapDenormalized()`); M2-T4's keyword heuristic now sources from here instead of its own local copy (one exception: `tax` has no module, keeps a small local keyword list)
+- ✅ `services/api/src/workers/parse-worker.ts` replaces the M1-T4 stub worker; writes `extracted_records` **and** `parse_runs`; applies the low-confidence → `needs_review` rule from `document-type-modules.md`
+- ✅ `ALLOWED_DOCUMENT_TYPES`, `DocumentType` union, web type-label maps extended to the 4 new types
+- ✅ Unit tests (33) + integration tests (`m2-t5a-parse.test.ts`, `m1-t4-vault.test.ts` fixed) — 94/94 unit, 66/66 integration, all still passing as of the first pass
 
-Note: `landlord_policy` carries a spec-level entitlement note (`design/schemas/README.md`) — extraction is supported for all plans, but the **product plan** may restrict rental/landlord portfolios to Platinum (M5). Not an M2-T5a concern (that's an access-control/plan-matrix decision for later), but worth remembering when this surfaces in the UI.
+**Why reopened**: after review, the 9 schemas were substantially enriched — comprehensive real-world declarations-page depth (22–53 fields each) with **arrays for repeating entities** (`vehicles[]`, `drivers[]`, `named_insureds[]`, etc. — `auto_policy` alone has 8) and a `group` tag on every scalar field for the review UI. Spec changes are applied and verified byte-for-byte against the proposal (`docs/proposed-comprehensive-schemas.md`): `openapi.yaml`'s `FieldValue.value` now allows arrays, all 9 `design/schemas/*.v1.json` replaced, `document-type-modules.md`/`ux_spec.md`/`parse-prompts.md`/`schemas/README.md` updated with the array/group convention and a new rule (6) that the review UI must render sections generically from schema metadata, never hardcoded per type. **None of this is live in the app yet** — `services/api/src/document-types/schemas/*.json` are manual copies, still the old simple versions; nothing broke, nothing regressed, this is purely additional scope.
+
+**Reopened scope**:
+- ✅ Re-copy all 9 schema JSON files from `kanak-ai-specs/design/schemas/` into `services/api/src/document-types/schemas/`
+- ✅ Extend `SchemaField`/`TypeSchema` types (`document-types/types.ts`) for `group` (required on scalars) and `type: 'array'` (`items`: scalar or flat-object-with-properties)
+- ✅ Widen `ParseField.value` (`parse/types.ts`) and `FieldValue.value` (`services/extracted-record.ts`) from scalar-only to scalar-or-array, matching the `openapi.yaml` change
+- ✅ Rework `mock-provider.ts`'s stub generation to handle array fields — 1–2 synthetic items per array, respecting each item's required properties and enums (meaningfully more work than the scalar-only stub generator)
+- ✅ Fixed a real gap found during review: `parse-worker.ts`'s `determineStatus()` checks a required field for `null`/`undefined`/`''` but not an empty array (`[]`) — a required array field (e.g. `vehicles`) with zero items would incorrectly pass as `ready`. Pulled into a dependency-free `workers/parse-status.ts` so it's unit-testable without `DATABASE_URL`.
+- ✅ New accordion review UI (`DocumentDetail.tsx`) — collapsible sections driven entirely by schema `group`/array metadata (no per-type UI code), one card per array item. Sections auto-expand when they contain a needs-review field. Required adding `group` to the `FieldValue` API payload (not yet reflected in `openapi.yaml` — additive/non-breaking, worth a small spec follow-up).
+- ✅ Update test assertions for field-key renames from the enrichment: `dwelling_coverage`→`dwelling_coverage_a_limit`, `property_address`→split into `property_address_street1/city/state/postal_code`, `personal_property_coverage`/`loss_of_use_coverage`/`loss_of_rents_coverage`→`*_limit`
+- ✅ Full regression + updated verification doc — 106/106 API unit tests, 66/66 integration tests, plus a live end-to-end check against rebuilt Docker containers
+
+**Exit criteria** (first pass, still holding):
+- ✅ All 9 types parse to `ready` with real, schema-correct field keys (not hardcoded per-type stub data)
+- ✅ `tax`/`other` generic fallback still reaches `ready`, not spuriously `needs_review`
+- ✅ `parse_runs` written per attempt (verified directly against Postgres — no HTTP endpoint yet)
+
+**Exit criteria** (reopened scope, new):
+- ✅ Mock adapter produces valid array data for all 9 types' array fields
+- ✅ A required array field left empty correctly triggers `needs_review`
+- ✅ Accordion UI renders any of the 9 types' full data (scalars grouped, arrays as sectioned cards) with zero type-specific UI code
+- ✅ Full regression green with updated field-key assertions
+- ⬜ **Your manual verification** — steps in the (updated) verification doc, including a visual check of the accordion UI in a browser (not yet done in this pass — no headless-browser tool available)
+
+**Verification**: [docs/M2-T5a-verification.md](docs/M2-T5a-verification.md)
 
 ---
 
@@ -135,6 +165,8 @@ Connects to the already-running host Ollama (`qwen2.5vl:7b`) via `OLLAMA_HOST`; 
 **Depends on**: M2-T5a
 
 `PATCH /documents/{id}/fields`, `field_corrections` persistence, review UI (mock 06).
+
+**Scope note (2026-08-17)**: builds on M2-T5a's reopened accordion UI, not the old flat field list — corrections need to work inside grouped sections, and for array fields, editing means adding/removing/editing individual array items (e.g. one vehicle), not just replacing a scalar value. `field_corrections` (schema.sql) stores `previous_value`/`new_value` as JSONB, so it already supports array values without a schema change — but the correction UI and `PATCH` payload shape need to account for "which array item" (item index or a stable item key), not just "which field key." Scope this out properly when this task starts rather than assuming the old flat-field design still applies.
 
 ---
 
@@ -182,7 +214,7 @@ Per `design/m2-capabilities.md` §9:
 - [ ] Sign in with real phone OTP on local stack (M2-T2)
 - [ ] Sign in with Apple on web — **deferred**, not blocking other M2 exit items
 - [ ] Upload PDF with selected type; mismatch surfaces validation feedback (M2-T4 code complete — structural + bare-minimum keyword check; awaiting your manual verification; full semantic check lands with M2-T5a's document-type module registry)
-- [ ] Parse writes structured fields per schema; detail + review UI works (M2-T5a–d)
+- [ ] Parse writes structured fields per schema; detail + review UI works (M2-T5a reopened scope code-complete — comprehensive schemas, array fields, grouped accordion display; awaiting your manual verification; correction UI is M2-T5c)
 - [ ] Camera capture → upload → parse path works on web (M2-T6)
 - [ ] Full M2 event set in `analytics_events` after happy-path runs (M2-T8)
 - [ ] Admin dashboards (Ops health, Activation, Parse quality + intake) usable locally (M2-T7)
@@ -191,5 +223,5 @@ Per `design/m2-capabilities.md` §9:
 
 ---
 
-**Last updated**: 2026-08-16
-**Current task**: M2-T4 (code complete, 59/59 regression passing — awaiting your manual verification) | M2-T2 live SMS delivery still pending your AWS account activation (parked, not blocking)
+**Last updated**: 2026-08-17
+**Current task**: M2-T5a reopened scope **code-complete**, awaiting your manual verification (steps 1–3, 6–7 in [docs/M2-T5a-verification.md](docs/M2-T5a-verification.md)) | M2-T4 code complete, awaiting your manual verification | M2-T2 live SMS delivery still pending your AWS account activation (parked, not blocking)

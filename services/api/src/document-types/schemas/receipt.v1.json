@@ -1,0 +1,291 @@
+{
+  "schema_version": "receipt.v1",
+  "document_type": "receipt",
+  "description": "Comprehensive receipt / invoice extraction fields",
+  "fields": [
+    {
+      "key": "merchant",
+      "label": "Merchant / store",
+      "type": "string",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "merchant"
+    },
+    {
+      "key": "merchant_address_street1",
+      "label": "Merchant address",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "merchant"
+    },
+    {
+      "key": "merchant_address_city",
+      "label": "Merchant city",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "merchant"
+    },
+    {
+      "key": "merchant_address_state",
+      "label": "Merchant state",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "merchant"
+    },
+    {
+      "key": "merchant_address_postal_code",
+      "label": "Merchant postal code",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "merchant"
+    },
+    {
+      "key": "merchant_phone",
+      "label": "Merchant phone",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "merchant"
+    },
+    {
+      "key": "merchant_website",
+      "label": "Merchant website",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "merchant"
+    },
+    {
+      "key": "receipt_number",
+      "label": "Receipt / invoice number",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "order_number",
+      "label": "Order number",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "purchase_date",
+      "label": "Purchase date",
+      "type": "date",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "transaction"
+    },
+    {
+      "key": "purchase_time",
+      "label": "Purchase time",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "payment_method",
+      "label": "Payment method",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "card_last_four",
+      "label": "Card last 4 digits",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "cashier_id",
+      "label": "Cashier ID",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "register_id",
+      "label": "Register / terminal ID",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "transaction"
+    },
+    {
+      "key": "subtotal",
+      "label": "Subtotal",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "totals"
+    },
+    {
+      "key": "tax_amount",
+      "label": "Tax amount",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "totals"
+    },
+    {
+      "key": "tax_rate",
+      "label": "Tax rate",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "totals"
+    },
+    {
+      "key": "tip_amount",
+      "label": "Tip amount",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "totals"
+    },
+    {
+      "key": "discount_amount",
+      "label": "Discount amount",
+      "type": "number",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "totals"
+    },
+    {
+      "key": "total_amount",
+      "label": "Total amount",
+      "type": "number",
+      "required": true,
+      "review_if_low_confidence": true,
+      "group": "totals"
+    },
+    {
+      "key": "currency",
+      "label": "Currency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "totals"
+    },
+    {
+      "key": "amount_frequency",
+      "label": "Amount frequency",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "totals",
+      "enum": [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "annual",
+        "unknown"
+      ]
+    },
+    {
+      "key": "warranty_hint",
+      "label": "Warranty mentioned on receipt",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "returns"
+    },
+    {
+      "key": "return_by_date",
+      "label": "Return / exchange by date",
+      "type": "date",
+      "required": false,
+      "review_if_low_confidence": true,
+      "group": "returns"
+    },
+    {
+      "key": "return_policy_summary",
+      "label": "Return policy summary",
+      "type": "string",
+      "required": false,
+      "review_if_low_confidence": false,
+      "group": "returns"
+    },
+    {
+      "key": "line_items",
+      "label": "Line items",
+      "type": "array",
+      "required": false,
+      "review_if_low_confidence": false,
+      "items": {
+        "type": "object",
+        "properties": [
+          {
+            "key": "line_item_id",
+            "label": "Line item ID",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "string",
+            "required": true,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "sku",
+            "label": "SKU",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "category",
+            "label": "Category",
+            "type": "string",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "unit_price",
+            "label": "Unit price",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          },
+          {
+            "key": "line_total",
+            "label": "Line total",
+            "type": "number",
+            "required": false,
+            "review_if_low_confidence": false
+          }
+        ]
+      }
+    }
+  ],
+  "denormalized_columns": {
+    "party_name": "merchant",
+    "reference_id": "receipt_number",
+    "amount": "total_amount",
+    "key_date": "return_by_date",
+    "amount_frequency": "amount_frequency"
+  }
+}

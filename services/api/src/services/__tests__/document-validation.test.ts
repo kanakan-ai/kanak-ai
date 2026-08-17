@@ -52,4 +52,13 @@ describe('checkDocumentTypeMatch', () => {
   test('always passes for a type with no keyword list ("other")', () => {
     expect(checkDocumentTypeMatch(receiptText, 'other')).toEqual({ checked: false, matched: true });
   });
+
+  test('matches a real-world rental dwelling policy that uses "Fair Rental Value" instead of "landlord"/"loss of rents"', () => {
+    // Excerpted from a real American Modern "Dwelling Special" (DW-CW-O-0001) declarations
+    // page that previously failed this check — it never says "landlord" or "loss of rents".
+    const dwellingSpecialText =
+      'Dwelling Special Application. Occupancy: Rental. Dwelling Coverages: ' +
+      'Additional Living Expense/Fair Rental Value 60,000 Included. Premises Liability 300,000.';
+    expect(checkDocumentTypeMatch(dwellingSpecialText, 'landlord_policy')).toEqual({ checked: true, matched: true });
+  });
 });
