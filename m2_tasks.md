@@ -159,14 +159,40 @@ Connects to the already-running host Ollama (`qwen2.5vl:7b`) via `OLLAMA_HOST`; 
 
 ---
 
-### ⬜ M2-T5c: Low-confidence review UI + corrections
+### ✅ M2-T5c: Low-confidence review UI + corrections
 
-**Status**: Not started
+**Status**: ✅ Complete — automated and manually verified by you (2026-08-19).
 **Depends on**: M2-T5a
 
-`PATCH /documents/{id}/fields`, `field_corrections` persistence, review UI (mock 06).
+`PATCH /documents/{id}/fields`, `field_corrections` persistence, inline correction UI in the accordion review screen.
 
-**Scope note (2026-08-17)**: builds on M2-T5a's reopened accordion UI, not the old flat field list — corrections need to work inside grouped sections, and for array fields, editing means adding/removing/editing individual array items (e.g. one vehicle), not just replacing a scalar value. `field_corrections` (schema.sql) stores `previous_value`/`new_value` as JSONB, so it already supports array values without a schema change — but the correction UI and `PATCH` payload shape need to account for "which array item" (item index or a stable item key), not just "which field key." Scope this out properly when this task starts rather than assuming the old flat-field design still applies.
+**Scope decision (2026-08-19)**: chose the fuller option — edit **and** add/remove array items, not just editing values inside existing items. Implemented as whole-field replacement: the client already holds the current array from the last `GET`, so an edit/add/remove all become "send back the new array for this key," the same `{key, value}` shape as a scalar correction — no item-level operation codes needed in the API.
+
+**Deliverables**:
+- ✅ `field_corrections` table added to `database/schema.sql` (existed in specs, not yet in app) and applied live
+- ✅ `PATCH /v1/documents/:id/fields` — validates keys against the real schema, rejects array/scalar shape mismatches, skips no-op corrections, recomputes denormalized columns via the existing `mapDenormalized()`, recomputes document status via a new `determineStatusAfterCorrection()` (ignores the stale parse-time `overall_confidence` once every field is individually clean)
+- ✅ `services/field-correction-logic.ts` (pure diff/apply, dependency-free — same reasoning as `parse-status.ts`) + `services/field-correction.ts` (DB write)
+- ✅ `itemSchema` added to array `FieldValue`s so the UI can build an "add item" form even when an array has 0 items
+- ✅ `DocumentDetail.tsx` — every scalar field and array-item property is click-to-edit; array cards get Remove, sections get "+ Add item"; edits batch into local draft state with a sticky Save/Discard bar (one PATCH per save, not per keystroke); per-field needs-review dot added
+- ✅ Unit tests (13 `field-correction-logic.test.ts` + `registry.test.ts` `enrichFieldsWithSchema` cases + `determineStatusAfterCorrection` cases) + integration tests (11 `m2-t5c-corrections.test.ts`)
+- ✅ Full mock-mode regression: 124/124 unit, 77/77 integration
+
+**Two real bugs found during your manual verification, both fixed**:
+1. **Discoverability**: a freshly-added array item showed all its properties as inert "Not available" text (edit affordance only revealed on hover) — easy to miss as "nothing happened." Fixed: a blank new item now opens every property already in edit mode.
+2. **Architectural gap**: `group`/`itemSchema` were being persisted into `extracted_records.fields` at parse/correction time instead of treated as schema metadata. An earlier correction on a test document wiped `discounts`' shape info entirely (stored as bare `{"value": [""]}`), permanently breaking "add item" for that document with no way to recover from stored data alone. Fixed properly, not just papered over: `enrichFieldsWithSchema()` now re-derives `group`/`itemSchema` from the *current* schema on every `GET`/`PATCH` response, overwriting whatever's in storage — any document, however old or corrupted, always reflects the current schema. Verified against a deliberately-corrupted repro document.
+
+**A real gap (not a bug, expected)**: the mock `ParseProvider` always produces clean output (no field ever `needsReview: true`), so a document reaching `needs_review` with real correctable fields isn't reachable end-to-end yet — same class of gap as M2-T5a's empty-required-array case. `determineStatusAfterCorrection`'s actual transition is proven at the unit level instead; will be directly observable once M2-T5b's real adapter lands.
+
+**Exit criteria**:
+- ✅ Corrections validate against the real per-type schema (not accepted blindly)
+- ✅ Array add/remove/edit all work through the same whole-field-replacement mechanism
+- ✅ `field_corrections` audit trail written per changed key only
+- ✅ Denormalized columns stay in sync with corrected source fields
+- ✅ Schema metadata (`group`/`itemSchema`) always reflects the current schema, independent of what's stored
+- ✅ Full regression green
+- ✅ **Your manual verification** — array add/remove/edit, scalar edit, discard, batched save all confirmed
+
+**Verification**: [docs/M2-T5c-verification.md](docs/M2-T5c-verification.md)
 
 ---
 
@@ -214,7 +240,7 @@ Per `design/m2-capabilities.md` §9:
 - [ ] Sign in with real phone OTP on local stack (M2-T2)
 - [ ] Sign in with Apple on web — **deferred**, not blocking other M2 exit items
 - [ ] Upload PDF with selected type; mismatch surfaces validation feedback (M2-T4 code complete — structural + bare-minimum keyword check; awaiting your manual verification; full semantic check lands with M2-T5a's document-type module registry)
-- [ ] Parse writes structured fields per schema; detail + review UI works (M2-T5a reopened scope code-complete — comprehensive schemas, array fields, grouped accordion display; awaiting your manual verification; correction UI is M2-T5c)
+- [x] Parse writes structured fields per schema; detail + review UI works, corrections persist (M2-T5c manually verified — accordion display, scalar/array editing, add/remove all confirmed working end to end; M2-T5a's own checklist — e.g. uploading all 4 newer document types — not separately re-verified, but exercised indirectly through M2-T5c testing)
 - [ ] Camera capture → upload → parse path works on web (M2-T6)
 - [ ] Full M2 event set in `analytics_events` after happy-path runs (M2-T8)
 - [ ] Admin dashboards (Ops health, Activation, Parse quality + intake) usable locally (M2-T7)
@@ -223,5 +249,5 @@ Per `design/m2-capabilities.md` §9:
 
 ---
 
-**Last updated**: 2026-08-17
-**Current task**: M2-T5a reopened scope **code-complete**, awaiting your manual verification (steps 1–3, 6–7 in [docs/M2-T5a-verification.md](docs/M2-T5a-verification.md)) | M2-T4 code complete, awaiting your manual verification | M2-T2 live SMS delivery still pending your AWS account activation (parked, not blocking)
+**Last updated**: 2026-08-19
+**Current task**: M2-T5c **done** (code + your manual verification) | Next up: M2-T5b (real Ollama/Qwen2.5-VL adapter) or M2-T5d (explainability UI) | M2-T5a reopened scope not separately re-verified ([docs/M2-T5a-verification.md](docs/M2-T5a-verification.md)) | M2-T4 code complete, awaiting your manual verification | M2-T1/M2-T2 live delivery verification available now that AWS credentials are refreshed, not yet run

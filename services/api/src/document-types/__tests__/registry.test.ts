@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { getDocumentTypeModule, listDocumentTypeModules, mapDenormalized, GENERIC_SCHEMA_VERSION } from '../registry.js';
+import { getDocumentTypeModule, listDocumentTypeModules, mapDenormalized, enrichFieldsWithSchema, GENERIC_SCHEMA_VERSION } from '../registry.js';
 
 const EXPECTED_TYPES = [
   'auto_policy',
@@ -76,5 +76,48 @@ describe('mapDenormalized', () => {
       amount_frequency: null,
       key_date: null,
     });
+  });
+});
+
+describe('enrichFieldsWithSchema', () => {
+  test('repairs a field that is missing group/itemSchema entirely (e.g. corrected before this existed)', () => {
+    const module = getDocumentTypeModule('auto_policy')!;
+    // Mirrors real corrupted storage seen in production: a scalar-shaped correction wiped
+    // out the array's group/itemSchema, leaving a bare {key, value} with nothing else.
+    const staleFields = [
+      { key: 'carrier', value: 'State Farm' },
+      { key: 'discounts', value: [''] },
+    ];
+    const enriched = enrichFieldsWithSchema(staleFields, module.schema.fields);
+
+    const carrier = enriched.find((f) => f.key === 'carrier');
+    expect(carrier?.group).toBe('policy');
+
+    const discounts = enriched.find((f) => f.key === 'discounts');
+    expect(discounts?.group).toBeUndefined(); // arrays never carry group
+    expect(discounts?.itemSchema).toBeDefined();
+    expect(discounts?.itemSchema!.length).toBeGreaterThan(0);
+    expect(discounts?.itemSchema).toContainEqual({ key: 'discount_code', label: 'Discount code', type: 'string' });
+  });
+
+  test('overwrites stale group/itemSchema rather than trusting whatever was already stored', () => {
+    const module = getDocumentTypeModule('auto_policy')!;
+    const staleFields = [{ key: 'carrier', value: 'State Farm', group: 'wrong-old-group' }];
+    const enriched = enrichFieldsWithSchema(staleFields, module.schema.fields);
+    expect(enriched[0].group).toBe('policy');
+  });
+
+  test('a scalar-array field (e.g. covered_components) gets no itemSchema — items are plain strings', () => {
+    const module = getDocumentTypeModule('warranty')!;
+    const staleFields = [{ key: 'covered_components', value: ['compressor'] }];
+    const enriched = enrichFieldsWithSchema(staleFields, module.schema.fields);
+    expect(enriched[0].itemSchema).toBeUndefined();
+  });
+
+  test('leaves a field with no matching schema entry untouched', () => {
+    const module = getDocumentTypeModule('auto_policy')!;
+    const staleFields = [{ key: 'no_longer_in_schema', value: 'x' }];
+    const enriched = enrichFieldsWithSchema(staleFields, module.schema.fields);
+    expect(enriched[0]).toEqual({ key: 'no_longer_in_schema', value: 'x' });
   });
 });

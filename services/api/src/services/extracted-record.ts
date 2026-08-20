@@ -26,6 +26,12 @@ export interface FieldValue {
   source?: string;
   /** Review UI accordion section; present on scalar fields only (document-type-modules.md rule 6). */
   group?: string;
+  /**
+   * Object-array fields only: the item shape (key/label/type per property), so the
+   * correction UI can build a blank "add item" form even when the array currently has
+   * zero items (e.g. an optional array like discounts with nothing extracted).
+   */
+  itemSchema?: Array<{ key: string; label: string; type: string }>;
 }
 
 export interface ExtractedRecord {
@@ -93,6 +99,51 @@ export async function createExtractedRecord(
       params.schemaVersion,
       JSON.stringify(params.fields),
       params.overallConfidence ?? null,
+      params.partyName ?? null,
+      params.referenceId ?? null,
+      params.amount ?? null,
+      params.amountFrequency ?? null,
+      params.keyDate ?? null,
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export interface UpdateExtractedRecordFieldsParams {
+  documentId: string;
+  fields: FieldValue[];
+  partyName?: string | null;
+  referenceId?: string | null;
+  amount?: number | null;
+  amountFrequency?: AmountFrequency | null;
+  keyDate?: string | null;
+}
+
+/**
+ * M2-T5c: overwrite fields (and re-derived denormalized columns) after a user
+ * correction. Callers recompute denormalized_columns via document-types
+ * registry.mapDenormalized() before calling this — kept generic here too.
+ */
+export async function updateExtractedRecordFields(
+  params: UpdateExtractedRecordFieldsParams
+): Promise<ExtractedRecord> {
+  const result = await query<ExtractedRecord>(
+    `
+    UPDATE extracted_records SET
+      fields = $2,
+      party_name = $3,
+      reference_id = $4,
+      amount = $5,
+      amount_frequency = $6,
+      key_date = $7,
+      updated_at = NOW()
+    WHERE document_id = $1
+    RETURNING *
+    `,
+    [
+      params.documentId,
+      JSON.stringify(params.fields),
       params.partyName ?? null,
       params.referenceId ?? null,
       params.amount ?? null,

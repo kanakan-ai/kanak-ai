@@ -147,6 +147,31 @@ CREATE INDEX parse_runs_created_at_idx ON parse_runs (created_at DESC);
 COMMENT ON TABLE parse_runs IS 'Parse lineage per attempt; cascade on document/user erase';
 COMMENT ON COLUMN parse_runs.raw_response IS 'Only if STORE_RAW_LLM_RESPONSE=true; may contain PII; never analytics';
 
+-- M2-T5c: user corrections to extracted fields (audit + parse-quality learning)
+CREATE TABLE field_corrections (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  document_id         UUID NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
+  extracted_record_id UUID REFERENCES extracted_records (id) ON DELETE SET NULL,
+  document_type       document_type NOT NULL,
+  schema_version      TEXT NOT NULL,
+  field_key           TEXT NOT NULL,
+  previous_value      JSONB,
+  new_value           JSONB,
+  previous_confidence REAL,
+  source              TEXT NOT NULL DEFAULT 'user_review'
+                        CHECK (source IN ('user_review', 'user_detail_edit', 'system_reparse')),
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX field_corrections_document_id_idx ON field_corrections (document_id);
+CREATE INDEX field_corrections_type_key_idx ON field_corrections (document_type, field_key);
+CREATE INDEX field_corrections_user_id_idx ON field_corrections (user_id);
+
+COMMENT ON TABLE field_corrections IS 'Audit of user (or system) field fixes for parse learning; cascade with user; no PDF bytes';
+COMMENT ON COLUMN field_corrections.previous_value IS 'JSON-encoded prior value; may be null';
+COMMENT ON COLUMN field_corrections.new_value IS 'JSON-encoded value after correction';
+
 -- ---------------------------------------------------------------------------
 -- Alerts
 -- ---------------------------------------------------------------------------

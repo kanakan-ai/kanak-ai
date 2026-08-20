@@ -16,7 +16,7 @@ import { getParseProvider } from '../parse/index.js';
 import { getDocumentTypeModule, GENERIC_SCHEMA_VERSION, GENERIC_FIELD_SPEC } from '../document-types/registry.js';
 import { determineStatus } from './parse-status.js';
 import type { ParseField } from '../parse/types.js';
-import type { SchemaField } from '../document-types/types.js';
+import { isArrayField, type SchemaField } from '../document-types/types.js';
 
 async function bufferFromStream(stream: Readable): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -27,18 +27,25 @@ async function bufferFromStream(stream: Readable): Promise<Buffer> {
 }
 
 function toFieldValues(fields: ParseField[], fieldSpec: SchemaField[]) {
-  const groupByKey = new Map(
-    fieldSpec.filter((f): f is SchemaField & { group: string } => 'group' in f).map((f) => [f.key, f.group])
-  );
-  return fields.map((f) => ({
-    key: f.key,
-    label: f.label ?? f.key,
-    value: f.value,
-    confidence: f.confidence,
-    needsReview: f.needsReview,
-    source: 'document',
-    group: groupByKey.get(f.key),
-  }));
+  const specByKey = new Map(fieldSpec.map((f) => [f.key, f]));
+  return fields.map((f) => {
+    const spec = specByKey.get(f.key);
+    const group = spec && 'group' in spec ? spec.group : undefined;
+    const itemSchema =
+      spec && isArrayField(spec) && spec.items.type === 'object'
+        ? spec.items.properties.map((p) => ({ key: p.key, label: p.label, type: p.type }))
+        : undefined;
+    return {
+      key: f.key,
+      label: f.label ?? f.key,
+      value: f.value,
+      confidence: f.confidence,
+      needsReview: f.needsReview,
+      source: 'document',
+      group,
+      itemSchema,
+    };
+  });
 }
 
 async function processDocument(documentId: string, documentType: DocumentType, storageKey: string, contentType: string) {

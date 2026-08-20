@@ -13,12 +13,33 @@ export function isMissingValue(value: ParseField['value']): boolean {
   return value === null || value === undefined || value === '';
 }
 
-export function determineStatus(output: ParseOutput, fieldSpec: SchemaField[]): 'ready' | 'needs_review' {
+/** Structural subset shared by ParseField and extracted-record.ts's FieldValue. */
+interface StatusField {
+  key: string;
+  value: ParseField['value'];
+  needsReview?: boolean;
+}
+
+function hasMissingOrFlaggedField(fields: StatusField[], fieldSpec: SchemaField[]): boolean {
   const requiredKeys = new Set(fieldSpec.filter((f) => f.required).map((f) => f.key));
-  const missingRequired = output.fields.some((f) => requiredKeys.has(f.key) && isMissingValue(f.value));
-  const flaggedField = output.fields.some((f) => f.needsReview);
-  if (missingRequired || flaggedField || output.overallConfidence < 0.7) {
+  const missingRequired = fields.some((f) => requiredKeys.has(f.key) && isMissingValue(f.value));
+  const flaggedField = fields.some((f) => f.needsReview);
+  return missingRequired || flaggedField;
+}
+
+export function determineStatus(output: ParseOutput, fieldSpec: SchemaField[]): 'ready' | 'needs_review' {
+  if (hasMissingOrFlaggedField(output.fields, fieldSpec) || output.overallConfidence < 0.7) {
     return 'needs_review';
   }
   return 'ready';
+}
+
+/**
+ * M2-T5c: recompute status after a user correction. Deliberately ignores the
+ * document's stored overall_confidence — that's a parse-time-only signal; once a human
+ * has fixed every missing-required/flagged field, the document should graduate to
+ * `ready` regardless of the original (now-stale) confidence number.
+ */
+export function determineStatusAfterCorrection(fields: StatusField[], fieldSpec: SchemaField[]): 'ready' | 'needs_review' {
+  return hasMissingOrFlaggedField(fields, fieldSpec) ? 'needs_review' : 'ready';
 }

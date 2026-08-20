@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { determineStatus, isMissingValue } from '../parse-status.js';
+import { determineStatus, determineStatusAfterCorrection, isMissingValue } from '../parse-status.js';
 import type { ParseOutput } from '../../parse/types.js';
 import type { SchemaField } from '../../document-types/types.js';
 
@@ -95,5 +95,41 @@ describe('determineStatus', () => {
     ]);
     output.overallConfidence = 0.6;
     expect(determineStatus(output, [REQUIRED_SCALAR, REQUIRED_ARRAY])).toBe('needs_review');
+  });
+});
+
+describe('determineStatusAfterCorrection', () => {
+  test('ignores a low stored overall_confidence once every field is clean — a corrected document can graduate to ready', () => {
+    const fields = [
+      { key: 'carrier', value: 'Acme', needsReview: false },
+      { key: 'vehicles', value: [{ vin: '123' }], needsReview: false },
+    ];
+    // Unlike determineStatus, this takes no overallConfidence param at all — the stale
+    // parse-time number can't hold a fully-corrected document in needs_review forever.
+    expect(determineStatusAfterCorrection(fields, [REQUIRED_SCALAR, REQUIRED_ARRAY])).toBe('ready');
+  });
+
+  test('still flags needs_review when a required field remains missing after correction', () => {
+    const fields = [
+      { key: 'carrier', value: null, needsReview: false },
+      { key: 'vehicles', value: [{ vin: '123' }], needsReview: false },
+    ];
+    expect(determineStatusAfterCorrection(fields, [REQUIRED_SCALAR, REQUIRED_ARRAY])).toBe('needs_review');
+  });
+
+  test('still flags needs_review when a required array is left empty after correction', () => {
+    const fields = [
+      { key: 'carrier', value: 'Acme', needsReview: false },
+      { key: 'vehicles', value: [], needsReview: false },
+    ];
+    expect(determineStatusAfterCorrection(fields, [REQUIRED_SCALAR, REQUIRED_ARRAY])).toBe('needs_review');
+  });
+
+  test('still flags needs_review when some other field is individually flagged', () => {
+    const fields = [
+      { key: 'carrier', value: 'Acme', needsReview: true },
+      { key: 'vehicles', value: [{ vin: '123' }], needsReview: false },
+    ];
+    expect(determineStatusAfterCorrection(fields, [REQUIRED_SCALAR, REQUIRED_ARRAY])).toBe('needs_review');
   });
 });

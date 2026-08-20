@@ -16,6 +16,8 @@ interface Field {
   source?: string;
   /** Review UI accordion section; present on scalar fields only. Absent on array fields. */
   group?: string;
+  /** Object-array fields only: item property shape, so "add item" works even with 0 items. */
+  itemSchema?: Array<{ key: string; label: string; type: string }>;
 }
 
 interface Document {
@@ -58,6 +60,16 @@ function valueFor(value: FieldScalarValue) {
   return String(value);
 }
 
+function inputTypeFor(value: FieldScalarValue, declaredType?: string): 'boolean' | 'number' | 'text' {
+  if (declaredType === 'boolean' || typeof value === 'boolean') return 'boolean';
+  if (declaredType === 'number' || typeof value === 'number') return 'number';
+  return 'text';
+}
+
+function valuesEqual(a: unknown, b: unknown) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 // Mirrors services/api/src/services/document-retention.ts's daysUntilRemoval — display-only here.
 function daysUntilRemoval(updatedAt: string) {
   const parsed = new Date(updatedAt);
@@ -70,6 +82,73 @@ function formatRetentionCountdown(updatedAt: string) {
   return remaining > 0
     ? `It'll be automatically removed in ${remaining} day${remaining === 1 ? '' : 's'} if left unresolved.`
     : "It'll be removed soon if left unresolved.";
+}
+
+/** Inline click-to-edit cell. Boolean fields render as a checkbox; everything else as text/number. */
+function EditableCell({
+  value,
+  declaredType,
+  className,
+  startEditing,
+  onCommit,
+}: {
+  value: FieldScalarValue;
+  declaredType?: string;
+  className: string;
+  /** Open already in edit mode — used for a freshly-added, still-blank item so it reads as a fillable form, not inert placeholder text. */
+  startEditing?: boolean;
+  onCommit: (next: FieldScalarValue) => void;
+}) {
+  const [editing, setEditing] = useState(!!startEditing);
+  const [draft, setDraft] = useState(startEditing ? (value === null ? '' : String(value)) : '');
+  const type = inputTypeFor(value, declaredType);
+
+  if (type === 'boolean') {
+    return (
+      <input
+        type="checkbox"
+        className={className}
+        checked={!!value}
+        onChange={(event) => onCommit(event.target.checked)}
+      />
+    );
+  }
+
+  if (editing) {
+    function commit() {
+      setEditing(false);
+      const next: FieldScalarValue = draft === '' ? null : type === 'number' ? Number(draft) : draft;
+      if (!valuesEqual(next, value)) onCommit(next);
+    }
+    return (
+      <input
+        className={`${className} editing`}
+        type={type === 'number' ? 'number' : 'text'}
+        value={draft}
+        autoFocus
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
+          if (event.key === 'Escape') setEditing(false);
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`${className} editable`}
+      onClick={() => {
+        setDraft(value === null ? '' : String(value));
+        setEditing(true);
+      }}
+    >
+      {valueFor(value)}
+      <span className="edit-icon">✎</span>
+    </button>
+  );
 }
 
 /**
@@ -116,23 +195,62 @@ function buildSections(fields: Field[]): Section[] {
   return [...scalarSections, ...arraySections];
 }
 
-function ArrayItemCard({ item }: { item: FieldArrayItemValue }) {
+function ArrayItemCard({
+  item,
+  itemSchema,
+  onChangeProperty,
+  onChangeScalar,
+  onRemove,
+}: {
+  item: FieldArrayItemValue;
+  itemSchema?: Field['itemSchema'];
+  onChangeProperty: (propKey: string, next: FieldScalarValue) => void;
+  onChangeScalar: (next: FieldScalarValue) => void;
+  onRemove: () => void;
+}) {
   if (!isObjectItem(item)) {
-    return <div className="array-item-card"><span>{valueFor(item)}</span></div>;
+    return (
+      <div className="array-item-card">
+        <EditableCell value={item} className="array-item-value" startEditing={item === ''} onCommit={onChangeScalar} />
+        <button type="button" className="array-item-remove" onClick={onRemove} aria-label="Remove item">✕</button>
+      </div>
+    );
   }
+  // A freshly-added blank item (every property still null) opens already in edit mode — otherwise
+  // it renders as a wall of "Not available" text with no visible cue that it's a fillable form.
+  const isBlankItem = Object.values(item).every((v) => v === null);
   return (
     <div className="array-item-card">
       {Object.entries(item).map(([key, value]) => (
         <div className="array-item-row" key={key}>
           <span className="array-item-key">{humanize(key)}</span>
-          <span className="array-item-value">{valueFor(value)}</span>
+          <EditableCell
+            value={value}
+            declaredType={itemSchema?.find((p) => p.key === key)?.type}
+            className="array-item-value"
+            startEditing={isBlankItem}
+            onCommit={(next) => onChangeProperty(key, next)}
+          />
         </div>
       ))}
+      <button type="button" className="array-item-remove" onClick={onRemove} aria-label="Remove item">✕ Remove</button>
     </div>
   );
 }
 
-function AccordionSection({ section }: { section: Section }) {
+function AccordionSection({
+  section,
+  onChangeScalarField,
+  onChangeArrayItem,
+  onRemoveArrayItem,
+  onAddArrayItem,
+}: {
+  section: Section;
+  onChangeScalarField: (key: string, next: FieldScalarValue) => void;
+  onChangeArrayItem: (key: string, index: number, next: FieldArrayItemValue) => void;
+  onRemoveArrayItem: (key: string) => (index: number) => void;
+  onAddArrayItem: (field: Field) => void;
+}) {
   return (
     <details className="accordion-section" open={section.needsReview}>
       <summary>
@@ -145,22 +263,44 @@ function AccordionSection({ section }: { section: Section }) {
           <div className="field-row-list">
             {section.scalarFields.map((field) => (
               <div className="field-row" key={field.key}>
-                <span className="field-row-label">{field.label}</span>
-                <span className="field-row-value">{valueFor(field.value as FieldScalarValue)}</span>
+                <span className="field-row-label">
+                  {field.label}
+                  {field.needsReview && <span className="review-dot" title="Review suggested" />}
+                </span>
+                <EditableCell
+                  value={field.value as FieldScalarValue}
+                  className="field-row-value"
+                  onCommit={(next) => onChangeScalarField(field.key, next)}
+                />
               </div>
             ))}
           </div>
         )}
-        {section.arrayField &&
-          (isArrayValue(section.arrayField.value) && section.arrayField.value.length > 0 ? (
-            <div className="array-item-list">
-              {section.arrayField.value.map((item, index) => (
-                <ArrayItemCard item={item} key={index} />
-              ))}
-            </div>
-          ) : (
-            <p className="status-message small">No {section.title.toLowerCase()} found on this document.</p>
-          ))}
+        {section.arrayField && isArrayValue(section.arrayField.value) && (
+          <>
+            {section.arrayField.value.length > 0 ? (
+              <div className="array-item-list">
+                {section.arrayField.value.map((item, index) => (
+                  <ArrayItemCard
+                    item={item}
+                    itemSchema={section.arrayField!.itemSchema}
+                    key={index}
+                    onChangeProperty={(propKey, next) =>
+                      onChangeArrayItem(section.arrayField!.key, index, { ...(item as object), [propKey]: next })
+                    }
+                    onChangeScalar={(next) => onChangeArrayItem(section.arrayField!.key, index, next)}
+                    onRemove={() => onRemoveArrayItem(section.arrayField!.key)(index)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="status-message small">No {section.title.toLowerCase()} found on this document.</p>
+            )}
+            <button type="button" className="text-button add-item" onClick={() => onAddArrayItem(section.arrayField!)}>
+              + Add item
+            </button>
+          </>
+        )}
       </div>
     </details>
   );
@@ -169,7 +309,10 @@ function AccordionSection({ section }: { section: Section }) {
 export function DocumentDetail({ documentId, onBack }: { documentId: string; onBack: () => void }) {
   const { token } = useAuth();
   const [document, setDocument] = useState<Document | null>(null);
+  const [draftFields, setDraftFields] = useState<Field[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [replacing, setReplacing] = useState(false);
@@ -188,9 +331,77 @@ export function DocumentDetail({ documentId, onBack }: { documentId: string; onB
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error();
-      setDocument(await response.json());
+      const data = await response.json();
+      setDocument(data);
+      setDraftFields(data.extracted_record?.fields ?? null);
     } catch {
       setError('We could not load this document.');
+    }
+  }
+
+  function updateFieldValue(key: string, updater: (current: Field['value']) => Field['value']) {
+    setDraftFields((prev) => prev && prev.map((f) => (f.key === key ? { ...f, value: updater(f.value) } : f)));
+  }
+
+  function changeScalarField(key: string, next: FieldScalarValue) {
+    updateFieldValue(key, () => next);
+  }
+
+  function changeArrayItem(key: string, index: number, next: FieldArrayItemValue) {
+    updateFieldValue(key, (value) => (isArrayValue(value) ? value.map((item, i) => (i === index ? next : item)) : value));
+  }
+
+  function removeArrayItem(key: string) {
+    return (index: number) => {
+      updateFieldValue(key, (value) => (isArrayValue(value) ? value.filter((_, i) => i !== index) : value));
+    };
+  }
+
+  function addArrayItem(field: Field) {
+    let blankItem: FieldArrayItemValue;
+    if (field.itemSchema && field.itemSchema.length > 0) {
+      blankItem = Object.fromEntries(field.itemSchema.map((p) => [p.key, null]));
+    } else if (isArrayValue(field.value) && field.value.length > 0 && isObjectItem(field.value[0])) {
+      // itemSchema wasn't sent (e.g. a document parsed before this field existed on the API) —
+      // fall back to the shape of an item that's already there instead of a plain string.
+      blankItem = Object.fromEntries(Object.keys(field.value[0]).map((k) => [k, null]));
+    } else {
+      blankItem = '';
+    }
+    updateFieldValue(field.key, (value) => (isArrayValue(value) ? [...value, blankItem] : value));
+  }
+
+  const changedFields =
+    draftFields && document?.extracted_record
+      ? draftFields.filter((f) => {
+          const original = document.extracted_record!.fields.find((o) => o.key === f.key);
+          return !valuesEqual(original?.value ?? null, f.value);
+        })
+      : [];
+
+  function discardChanges() {
+    setDraftFields(document?.extracted_record?.fields ?? null);
+    setSaveError(null);
+  }
+
+  async function saveChanges() {
+    if (changedFields.length === 0) return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/fields`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fields: changedFields.map((f) => ({ key: f.key, value: f.value })) }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Could not save your changes.');
+      setDocument(data);
+      setDraftFields(data.extracted_record?.fields ?? null);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save your changes.');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -304,7 +515,8 @@ export function DocumentDetail({ documentId, onBack }: { documentId: string; onB
         )}`
       : 'Your document is being processed. Check back shortly.';
 
-  const sections = document.extracted_record?.fields ? buildSections(document.extracted_record.fields) : null;
+  const sections = draftFields ? buildSections(draftFields) : null;
+  const hasUnsavedChanges = changedFields.length > 0;
 
   return (
     <main className="page-content narrow">
@@ -315,15 +527,38 @@ export function DocumentDetail({ documentId, onBack }: { documentId: string; onB
           <h1>{title}</h1>
           <span className={`status-pill ${document.status}`}>{statusLabel}</span>
         </div>
-        <p className="page-subtitle">Details extracted from your original document.</p>
+        <p className="page-subtitle">Details extracted from your original document. Click any value to correct it.</p>
       </header>
       <section className="accordion-list">
         {sections && sections.length > 0 ? (
-          sections.map((section) => <AccordionSection section={section} key={section.id} />)
+          sections.map((section) => (
+            <AccordionSection
+              section={section}
+              key={section.id}
+              onChangeScalarField={changeScalarField}
+              onChangeArrayItem={changeArrayItem}
+              onRemoveArrayItem={removeArrayItem}
+              onAddArrayItem={addArrayItem}
+            />
+          ))
         ) : (
           <p className="status-message">{emptyStateMessage}</p>
         )}
       </section>
+      {hasUnsavedChanges && (
+        <div className="notice warning save-bar">
+          <p>{changedFields.length} field{changedFields.length === 1 ? '' : 's'} changed.</p>
+          {saveError && <div className="notice error">{saveError}</div>}
+          <div className="notice-actions">
+            <button className="button secondary" type="button" onClick={discardChanges} disabled={isSaving}>
+              Discard
+            </button>
+            <button className="button primary" type="button" onClick={() => void saveChanges()} disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      )}
       {confirmingDelete ? (
         <div className="notice warning">
           <p>Remove this document from your vault? This can't be undone — the original file is deleted too.</p>

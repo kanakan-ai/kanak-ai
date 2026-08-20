@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { DocumentTypeModule, TypeSchema, DenormalizedFields } from './types.js';
+import { isArrayField, type DocumentTypeModule, type TypeSchema, type DenormalizedFields, type SchemaField } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = path.join(__dirname, 'schemas');
@@ -108,6 +108,34 @@ export function getDocumentTypeModule(documentType: string): DocumentTypeModule 
 
 export function listDocumentTypeModules(): DocumentTypeModule[] {
   return Object.values(MODULES);
+}
+
+/**
+ * M2-T5c: `group` and `itemSchema` are schema metadata, not extracted data — they must be
+ * derived fresh from the *current* schema on every read, never trusted from storage. A
+ * field corrected before this existed (or before a schema change) would otherwise be
+ * stuck with stale/missing metadata forever; enriching at the response boundary means
+ * every document — however old — always reflects the current schema. Overwrites
+ * whatever the stored field already had for these two keys.
+ */
+export function enrichFieldsWithSchema<
+  T extends { key: string; group?: string; itemSchema?: Array<{ key: string; label: string; type: string }> }
+>(fields: T[], fieldSpec: SchemaField[]): T[] {
+  const specByKey = new Map(fieldSpec.map((f) => [f.key, f]));
+  return fields.map((field) => {
+    const spec = specByKey.get(field.key);
+    if (!spec) return field;
+    const group = 'group' in spec ? spec.group : undefined;
+    const itemSchema =
+      isArrayField(spec) && spec.items.type === 'object'
+        ? spec.items.properties.map((p) => ({ key: p.key, label: p.label, type: p.type }))
+        : undefined;
+    return {
+      ...field,
+      ...(group ? { group } : {}),
+      ...(itemSchema ? { itemSchema } : {}),
+    };
+  });
 }
 
 /**

@@ -16,6 +16,11 @@ import * as extractedRecordService from '../services/extracted-record.js';
 import { recordEvent } from '../services/analytics.js';
 import { validatePdfStructure, extractPdfText, checkDocumentTypeMatch } from '../services/document-validation.js';
 import type { TypeMatchResult } from '../services/document-validation.js';
+import { applyCorrections } from '../services/field-correction-logic.js';
+import type { FieldCorrectionInput } from '../services/field-correction-logic.js';
+import { recordFieldCorrections } from '../services/field-correction.js';
+import { determineStatusAfterCorrection } from '../workers/parse-status.js';
+import { getDocumentTypeModule, mapDenormalized, enrichFieldsWithSchema, GENERIC_SCHEMA_VERSION, GENERIC_FIELD_SPEC } from '../document-types/registry.js';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ALLOWED_DOCUMENT_TYPES = [
@@ -31,6 +36,26 @@ const ALLOWED_DOCUMENT_TYPES = [
   'renters_policy',
   'long_term_care',
 ] as const;
+
+/**
+ * `group`/`itemSchema` are schema metadata, not extracted data — always re-derive them from
+ * the *current* schema before a record leaves the API, regardless of what's stored (see
+ * enrichFieldsWithSchema). Every response that includes an extracted_record goes through this.
+ */
+function withEnrichedRecord<T extends { extracted_record: extractedRecordService.ExtractedRecord | null }>(
+  document: T,
+  documentType: string
+): T {
+  if (!document.extracted_record) return document;
+  const fieldSpec = getDocumentTypeModule(documentType)?.schema.fields ?? GENERIC_FIELD_SPEC;
+  return {
+    ...document,
+    extracted_record: {
+      ...document.extracted_record,
+      fields: enrichFieldsWithSchema(document.extracted_record.fields, fieldSpec),
+    },
+  };
+}
 
 export default async function documentRoutes(fastify: FastifyInstance) {
   /**
@@ -262,10 +287,9 @@ export default async function documentRoutes(fastify: FastifyInstance) {
         const extractedRecordsMap = await extractedRecordService.getExtractedRecordsByDocumentIds(documentIds);
 
         // Combine documents with their extracted records
-        const documentsWithRecords = documents.map((doc) => ({
-          ...doc,
-          extracted_record: extractedRecordsMap.get(doc.id) || null,
-        }));
+        const documentsWithRecords = documents.map((doc) =>
+          withEnrichedRecord({ ...doc, extracted_record: extractedRecordsMap.get(doc.id) || null }, doc.document_type)
+        );
 
         return reply.send({ documents: documentsWithRecords });
       } catch (error) {
@@ -316,8 +340,7 @@ export default async function documentRoutes(fastify: FastifyInstance) {
         );
 
         return reply.send({
-          ...document,
-          extracted_record: extractedRecord || null,
+          ...withEnrichedRecord({ ...document, extracted_record: extractedRecord || null }, document.document_type),
           download_url: downloadUrl,
         });
       } catch (error) {
@@ -375,6 +398,146 @@ export default async function documentRoutes(fastify: FastifyInstance) {
         return reply.code(500).send({
           error: 'Internal Server Error',
           message: 'Failed to download document',
+        });
+      }
+    }
+  );
+
+  /**
+   * PATCH /v1/documents/:id/fields
+   * Apply user corrections to extracted fields (M2-T5c)
+   * Array fields are whole-field replacements: the client holds the current array from
+   * the last GET, so an item edit/add/remove all become "send back the new array for
+   * this key" — same {key, value} shape as a scalar correction.
+   */
+  fastify.patch(
+    '/documents/:id/fields',
+    {
+      onRequest: [authenticateRequest],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authReq = request as AuthenticatedRequest;
+
+      try {
+        const { id } = request.params as { id: string };
+        const body = request.body as { fields?: unknown };
+
+        if (!Array.isArray(body?.fields) || body.fields.length === 0) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'fields must be a non-empty array',
+          });
+        }
+        for (const entry of body.fields) {
+          if (
+            typeof entry !== 'object' ||
+            entry === null ||
+            typeof (entry as { key?: unknown }).key !== 'string' ||
+            !('value' in (entry as object))
+          ) {
+            return reply.code(400).send({
+              error: 'Bad Request',
+              message: 'Each field correction needs a string key and a value',
+            });
+          }
+        }
+        const corrections = body.fields as FieldCorrectionInput[];
+
+        const document = await documentService.getDocumentByIdAndUser(id, authReq.user!.id);
+        if (!document) {
+          return reply.code(404).send({
+            error: 'Not Found',
+            message: 'Document not found',
+          });
+        }
+
+        const extractedRecord = await extractedRecordService.getExtractedRecordByDocumentId(document.id);
+        if (!extractedRecord) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'This document has no extracted fields yet',
+          });
+        }
+
+        const module = getDocumentTypeModule(document.document_type);
+        const fieldSpec = module?.schema.fields ?? GENERIC_FIELD_SPEC;
+        const schemaVersion = module?.schema.schema_version ?? GENERIC_SCHEMA_VERSION;
+
+        const { updatedFields, changed, unknownKeys, malformedKeys } = applyCorrections(
+          extractedRecord.fields,
+          corrections,
+          fieldSpec
+        );
+
+        if (unknownKeys.length > 0 || malformedKeys.length > 0) {
+          const parts: string[] = [];
+          if (unknownKeys.length > 0) parts.push(`Unknown field key(s): ${unknownKeys.join(', ')}`);
+          if (malformedKeys.length > 0) parts.push(`Value shape doesn't match the schema for: ${malformedKeys.join(', ')}`);
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: parts.join('; '),
+          });
+        }
+
+        const downloadUrl = await storageService.getPresignedUrl(document.storage_key, 3600);
+
+        if (changed.length === 0) {
+          return reply.send({
+            ...withEnrichedRecord({ ...document, extracted_record: extractedRecord }, document.document_type),
+            download_url: downloadUrl,
+          });
+        }
+
+        const fieldValues = Object.fromEntries(updatedFields.map((f) => [f.key, f.value]));
+        const denormalized = module
+          ? mapDenormalized(module.schema, fieldValues)
+          : { party_name: null, reference_id: null, amount: null, amount_frequency: null, key_date: null };
+
+        const updatedRecord = await extractedRecordService.updateExtractedRecordFields({
+          documentId: document.id,
+          fields: updatedFields,
+          partyName: denormalized.party_name,
+          referenceId: denormalized.reference_id,
+          amount: denormalized.amount,
+          amountFrequency: denormalized.amount_frequency as any,
+          keyDate: denormalized.key_date,
+        });
+
+        const newStatus = determineStatusAfterCorrection(updatedFields, fieldSpec);
+        if (newStatus !== document.status) {
+          await documentService.updateDocumentStatus(document.id, newStatus);
+        }
+
+        await recordFieldCorrections(
+          changed.map((c) => ({
+            userId: authReq.user!.id,
+            documentId: document.id,
+            extractedRecordId: extractedRecord.id,
+            documentType: document.document_type,
+            schemaVersion,
+            fieldKey: c.key,
+            previousValue: c.previousValue,
+            newValue: updatedFields.find((f) => f.key === c.key)?.value ?? null,
+            previousConfidence: c.previousConfidence,
+            source: 'user_detail_edit',
+          }))
+        );
+
+        await recordEvent({
+          userId: authReq.user!.id,
+          event: 'field_correction_saved',
+          properties: { document_type: document.document_type, corrected_field_count: changed.length },
+        });
+
+        return reply.send({
+          ...withEnrichedRecord({ ...document, status: newStatus, extracted_record: updatedRecord }, document.document_type),
+          download_url: downloadUrl,
+        });
+      } catch (error) {
+        request.log.error({ err: error }, 'Failed to update document fields');
+        return reply.code(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to update document fields',
         });
       }
     }
